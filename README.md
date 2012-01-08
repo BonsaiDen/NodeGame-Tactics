@@ -15,8 +15,9 @@ build upon.
 - ✓ Server that can handle multiple games / rooms
 - ✓ Tick synced Server / Clients with synced RNG and time
 - ✓ Joining / Leaving Games 
+- Sync Player / Client lists
 - Twitter login
-- (auto) Choosing player colors for 
+- (auto) Choosing of player colors
 - Simple Chat 
 - Creating games with settings
 

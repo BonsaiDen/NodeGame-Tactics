@@ -36,12 +36,17 @@ var Client = Class(Twist, {
         this._tickCount = -1;
         this._tickSyncTime = -1;
 
+        this._players = new HashList();
+        this._clients = new HashList();
+
         this._lastTick = 0;
         this._syncRate = 0;
         this._logicRate = 0;
 
         this._randomSeed = 0;
         this._randomState = 0;
+
+        this._messageQueue = [];
 
     },
 
@@ -61,9 +66,12 @@ var Client = Class(Twist, {
 
             var tick = lt + ct;
             if (tick > this._lastTick && tick % this._logicRate === 0) {
+
+                this.onMessageQueue(tick);
                 this._randomState = tick;
                 this.tick((tick * this._tickRate) - this._tickRate, tick);
                 this._lastTick = tick;
+
             }
 
             ct++;
@@ -98,29 +106,42 @@ var Client = Class(Twist, {
             that.send(network.Client.CONNECT, {
                 hash: hash,
                 name: name
-
             });
 
         };
 
         this.socket.onmessage = function(msg) {
-            that.clientMessage(BISON.decode(msg.data));
+            that.onMessage(BISON.decode(msg.data));
         };
 
         this.socket.onclose = function() {
             that.stop();
-            that.clientClose();
+            that.onClose();
         };
 
     },
 
-    clientConnect: function() {
+    onConnect: function() {
         this.join(1);
     },
 
-    clientMessage: function(msg) {
+    // TODO validate against tick count to ensure synced state
+    onMessage: function(msg, queued) {
 
         msg.type = msg.type !== undefined ? msg.type : msg[0];
+        msg.tick = (msg.tick !== undefined ? msg.tick : msg[1]) || -1;
+
+        // Do we need to wait before parsing this one?
+        if (msg.tick !== -1 && msg.tick > this._lastTick && msg.type !== network.Game.TICK) {
+
+            if (!queued) {
+                console.log('QUEUE', msg.tick);
+                this._messageQueue.push(msg);
+            }
+
+            return false;
+
+        }
 
         // Set re-connect hash
         if (msg.type === network.Client.HASH) {
@@ -133,7 +154,7 @@ var Client = Class(Twist, {
 
         } else if (!this._isConnected && msg.type === network.Client.CONNECT) {
             this._isConnected = true;
-            this.clientConnect();
+            this.onConnect();
 
         // Server settings for clients
         } else if (msg.type === network.Server.SETTINGS) {
@@ -161,7 +182,10 @@ var Client = Class(Twist, {
 
         // Game left
         } else if (msg.type === network.Client.Game.LEFT) {
+
             this.stop();
+            this._players.clear();
+            this._clients.clear();
             this.onGameLeave(msg.id);
 
         // Sync game ticks
@@ -170,21 +194,96 @@ var Client = Class(Twist, {
             this._tickCount = msg[1];
 
         // Client list
-        } else  if (msg.type == network.Game.Client.LIST) {
-            console.log('clients', msg.slice(1));
+        } else if (msg.type == network.Game.Client.LIST) {
+
+            this._clients.clear();
+
+            var list = msg.slice(2);
+            for(var i = 0, l = list.length; i < l; i++) {
+                this._clients.add(list[i]);
+            }
+
+            this.onClientList(this._clients);
+
+        // Client joined
+        } else if (msg.type == network.Game.Client.JOINED) {
+
+            delete msg.type;
+            if (!this._clients.has(msg)) {
+                this._clients.add(msg);
+            }
+
+            this.onClientList(this._clients);
+
+        // Client left
+        } else if (msg.type == network.Game.Client.LEFT) {
+
+            if (this._clients.has(msg)) {
+                this._clients.remove(msg);
+            }
+
+            this.onClientList(this._clients);
 
         // Player list
-        } else  if (msg.type == network.Game.Player.LIST) {
-            console.log('players', msg.slice(1));
+        } else if (msg.type == network.Game.Player.LIST) {
+
+            this._players.clear();
+
+            var list = msg.slice(2);
+            for(var i = 0, l = list.length; i < l; i++) {
+                this._players.add(list[i]);
+            }
+
+            this.onPlayerList(this._players);
+
+        // Player joined
+        } else if (msg.type == network.Game.Player.JOINED) {
+
+            delete msg.type;
+            if (!this._players.has(msg)) {
+                this._players.add(msg);
+            }
+
+            this.onPlayerList(this._players);
+
+        // Player left
+        } else if (msg.type == network.Game.Player.LEFT) {
+
+            if (this._players.has(msg)) {
+                this._players.remove(msg);
+            }
+
+            this.onPlayerList(this._players);
 
         } else {
             console.log('other', msg);
-            return msg;
+//            return msg;
+        }
+
+        return true;
+
+    },
+
+    onMessageQueue: function() {
+
+        this._messageQueue.sort(function(a, b) {
+            return a.tick - b.tick;
+        });
+
+        console.log('queue', this._messageQueue.length);
+        for(var i = 0; i < this._messageQueue.length; i++) {
+
+            console.log(this._messageQueue.length)
+            if (this.onMessage(this._messageQueue[i], true)) {
+                this._messageQueue.splice(i, 1);
+                i--;
+            }
+
         }
 
     },
 
-    clientClose: function() {
+    onClose: function() {
         console.log('Closed');
     },
 
@@ -194,6 +293,15 @@ var Client = Class(Twist, {
 
     onGameLeave: function(id) {
         console.log('Left game #' + id);
+    },
+
+    onPlayerList: function(players) {
+        console.log(players.toString());
+
+    },
+
+    onClientList: function(clients) {
+
     },
 
     // Interactions -----------------------------------------------------------
@@ -232,7 +340,8 @@ var Client = Class(Twist, {
     },
 
 
-    // Helpers ----------------------------------------------------------------
+    // Getter / Setter --------------------------------------------------------
+    // ------------------------------------------------------------------------
     getRandom: function() {
         this._randomState = (1103515245 * (this._randomState + this._randomSeed) + 12345) % 0x100000000;
         return this._randomState / 0x100000000;
@@ -249,6 +358,14 @@ var Client = Class(Twist, {
 
         return tick;
 
+    },
+
+    getClients: function() {
+        return this._clients;
+    },
+
+    getPlayer: function() {
+        return this._players;
     }
 
 });

@@ -115,6 +115,7 @@ var Game = Class({
                     break;
                 }
 
+                console.log(this._players.toString());
             }
 
             this._tickCount++;
@@ -193,6 +194,8 @@ var Game = Class({
     // ------------------------------------------------------------------------
     onClientJoin: function(client, watching) {
 
+        var tick = this.getTick();
+
         log(this, 'Client joined', watching);
         this._clients.add(client);
 
@@ -200,20 +203,22 @@ var Game = Class({
         this.broadcast(network.Game.Client.JOINED, client.toMessage(), [client]);
 
         // Send list of clients to new one
-        client.send(network.Game.Client.LIST, this._clients.map(function(cl) {
+        client.send(network.Game.Client.LIST, tick, this._clients.map(function(cl) {
             return cl.toMessage(client === cl);
         }));
 
         // Sync all clients game ticker (so random is "synced" too)
-        this.broadcast(network.Game.TICK, [this._tickCount]);
+        this.broadcast(network.Game.TICK, []);
 
         // Send game settings down to the new client
-        client.send(network.Client.Game.JOINED, {
+        client.send(network.Client.Game.JOINED, tick, {
+
             id: this.id,
             tickRate: this._tickRate,
             logicRate: this._logicRate,
             syncRate: this._syncRate,
             randomSeed: this._randomSeed
+
         });
 
         // Add player or re-connect client to one
@@ -246,7 +251,7 @@ var Game = Class({
 
         }
 
-        client.send(network.Game.Player.LIST, this._players.map(function(player) {
+        client.send(network.Game.Player.LIST, tick, this._players.map(function(player) {
             return player.toMessage(client.getPlayer() === player);
         }));
 
@@ -287,6 +292,10 @@ var Game = Class({
             this._stop();
         }
 
+        client.send(network.Client.Game.LEFT, this.getTick(), {
+            id: this.id
+        });
+
     },
 
     /**
@@ -314,6 +323,14 @@ var Game = Class({
       * all players except for those in the @exclude {Array}
       */
     broadcast: function(type, msg, exclude) {
+
+        // Add the tick to the message
+        if (msg instanceof Array) {
+            msg.unshift(this._tickCount);
+
+        } else {
+            msg.tick = this._tickCount;
+        }
 
         if (exclude) {
             this._server.broadcast(type, msg, exclude, true);

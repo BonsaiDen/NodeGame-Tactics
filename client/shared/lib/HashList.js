@@ -255,6 +255,17 @@ HashList.prototype = {
 
         }
 
+    },
+
+    toString: function() {
+
+        var list = [];
+        for(var i = 0; i < this.length; i++) {
+            list.push('[' + this.items[i].id + ']');
+        }
+
+        return list.join(', ');
+
     }
 
 };

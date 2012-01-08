@@ -57,7 +57,7 @@ var Client = Class({
         log(this, 'Connected');
 
         // Send intitial network data and game list
-        this.send(network.Client.CONNECT, {});
+        this.send(network.Client.CONNECT, 0, {});
 
     },
 
@@ -67,7 +67,7 @@ var Client = Class({
         hash.update(Date.now() + '-' + this.id + '-' + this.uid);
         this._hash = hash.digest('hex');
 
-        this.send(network.Client.HASH, {
+        this.send(network.Client.HASH, 0, {
             hash: this._hash
         });
 
@@ -124,10 +124,6 @@ var Client = Class({
 
         log(this, 'Leaving game #' + this._game.id)
         this._game.onClientLeave(this, disconnected || false);
-        this.send(network.Client.Game.LEFT, {
-            id: this._game.id
-        });
-
         log(this, 'Left game #' + this._game.id);
         this._game = null;
 
@@ -139,15 +135,18 @@ var Client = Class({
       *
       * Returns the number of bytes send over the network for the message.
       */
-    send: function(type, msg) {
+    send: function(type, tick, msg) {
 
         if (msg instanceof Array) {
+            msg.unshift(tick);
             msg.unshift(type);
 
         } else {
             msg.type = type;
+            msg.tick = tick;
         }
 
+        console.log(msg);
         return this._conn.send(bison.encode(msg));
 
     },
