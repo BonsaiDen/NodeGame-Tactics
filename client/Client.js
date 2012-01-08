@@ -98,6 +98,7 @@ var Client = Class(Twist, {
             that.send(network.Client.CONNECT, {
                 hash: hash,
                 name: name
+
             });
 
         };
@@ -168,7 +169,16 @@ var Client = Class(Twist, {
             this._tickSyncTime = Date.now();
             this._tickCount = msg[1];
 
+        // Client list
+        } else  if (msg.type == network.Game.Client.LIST) {
+            console.log('clients', msg.slice(1));
+
+        // Player list
+        } else  if (msg.type == network.Game.Player.LIST) {
+            console.log('players', msg.slice(1));
+
         } else {
+            console.log('other', msg);
             return msg;
         }
 
@@ -199,9 +209,9 @@ var Client = Class(Twist, {
         this.send(network.Client.Game.LEAVE);
     },
 
-    send: function(type, msg) {
+    send: function(type, msg, ping) {
 
-        msg = msg || [];
+        msg = msg || {};
         if (msg instanceof Array) {
             msg.unshift(type);
 
@@ -209,8 +219,16 @@ var Client = Class(Twist, {
             msg.type = type;
         }
 
+        if (ping && this.isRunning()) {
+            msg.tick = this.getTick();
+        }
+
         this.socket.send(BISON.encode(msg));
 
+    },
+
+    ping: function() {
+        this.send(1000, {}, true);
     },
 
 

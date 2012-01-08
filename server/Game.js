@@ -191,7 +191,7 @@ var Game = Class({
 
     // Client -----------------------------------------------------------------
     // ------------------------------------------------------------------------
-    clientJoin: function(client, watching) {
+    onClientJoin: function(client, watching) {
 
         log(this, 'Client joined', watching);
         this._clients.add(client);
@@ -222,7 +222,6 @@ var Game = Class({
             // Figure out if we can/should reconnect the player
             function reconnect(player) {
 
-                console.log('recon', player.getHash(), client.getHash())
                 if (!player.getClient() && player.getHash() === client.getHash()) {
                     player.connect(client, true);
                     client.updateHash();
@@ -248,27 +247,28 @@ var Game = Class({
         }
 
         client.send(network.Game.Player.LIST, this._players.map(function(player) {
-            return player.toMessage(client.player === player);
+            return player.toMessage(client.getPlayer() === player);
         }));
 
     },
 
-    clientMessage: function(client, msg) {
+    onClientMessage: function(client, msg) {
 
-        log(this, 'Client message:', msg);
+        log(this, 'Client message:', msg, this.getTick());
 
-        if (client.player) {
-            client.player.message(msg);
+        // TODO break up
+        if (client.getPlayer()) {
+            client.getPlayer().onMessage(msg);
         }
 
     },
 
-    clientLeave: function(client, disconnect) {
+    onClientLeave: function(client, disconnect) {
 
         // Mark the player as disconnected
-        if (disconnect && client.player) {
+        if (disconnect && client.getPlayer()) {
             log(this, 'Client disconnected');
-            client.player.onDisconnect();
+            client.getPlayer().onDisconnect();
 
         // Send out leave message to other clients
         // Leaving the actual game is done by the player
@@ -278,7 +278,7 @@ var Game = Class({
             this.broadcast(network.Game.Client.LEFT, client.toMessage(), [client]);
 
             // TODO break up relationship and use something else. A Map?
-            client.player.onLeave();
+            client.getPlayer().onLeave();
         }
 
         this._clients.remove(client);

@@ -51,7 +51,7 @@ var Player = Class({
     connect: function(client, reconnect) {
 
         this._client = client;
-        this._client.player = this;
+        this._client.setPlayer(this);
         this.cid = this._client.uid;
 
         this._hash = null;
@@ -81,7 +81,7 @@ var Player = Class({
     onDisconnect: function() {
 
         this._hash = this._client.getHash();
-        this._client.player = null;
+        this._client.setPlayer(null);
         this._client = null;
         this._disconnectTime = Date.now();
 
@@ -98,7 +98,7 @@ var Player = Class({
     onLeave: function(timeout) {
 
         if (this._client) {
-            this._client.player = null;
+            this._client.setPlayer(null);
             this._client = null;
         }
 

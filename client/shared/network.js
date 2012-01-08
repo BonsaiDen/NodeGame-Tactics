@@ -78,7 +78,9 @@
         // Error codes
         Error: {
             SERVER_FULL: 1,
-            INVALID_CONNECT: 2
+            INVALID_CONNECT: 2,
+            INVALID_GAME: 3,
+            SAME_GAME: 4
         }
 
     };

@@ -47,6 +47,7 @@ var Client = Class({
         this._hash = msg.hash;
         this._name = msg.name;
         this._game = null;
+        this._player = null;
 
         // Send intitial hash
         if (this._hash === '--------------------------------') {
@@ -75,7 +76,7 @@ var Client = Class({
     close: function() {
 
         if (this._game) {
-            this.leave(true);
+            this.leaveGame(true);
         }
 
         this._conn.close();
@@ -95,6 +96,7 @@ var Client = Class({
             this.error(network.Error.SAME_GAME, gid);
             return;
 
+        // In case we're in another game, leave that one first
         } else if (this._game) {
             this.leave();
         }
@@ -106,7 +108,7 @@ var Client = Class({
         if (typeof game !== 'string' && game !== undefined) {
 
             this._game = game;
-            this._game.clientJoin(this, watching);
+            this._game.onClientJoin(this, watching);
             log(this, 'Joined game #' + gid + (watching ? ' (watching)' : ''));
 
         } else {
@@ -121,7 +123,7 @@ var Client = Class({
     leaveGame: function(disconnected) {
 
         log(this, 'Leaving game #' + this._game.id)
-        this._game.clientLeave(this, disconnected || false);
+        this._game.onClientLeave(this, disconnected || false);
         this.send(network.Client.Game.LEFT, {
             id: this._game.id
         });
@@ -186,7 +188,7 @@ var Client = Class({
             }
 
         } else if (this._game) {
-            this._game.clientMessage(this, msg);
+            this._game.onClientMessage(this, msg);
         }
 
     },
@@ -196,6 +198,14 @@ var Client = Class({
     // ------------------------------------------------------------------------
     getHash: function() {
         return this._hash;
+    },
+
+    getPlayer: function() {
+        return this._player;
+    },
+
+    setPlayer: function(player) {
+        this._player = player;
     },
 
 
