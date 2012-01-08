@@ -40,7 +40,7 @@ var Game = Class({
         this._maxPlayers = maxPlayers || 6;
         this._players = new HashList(maxPlayers);
         this._clients = new HashList();
-        this._timeout = timeout || 15000;
+        this._timeout = timeout || 1000;
 
         // Ticking
         this._tickTime = 0;
@@ -60,7 +60,7 @@ var Game = Class({
 
         // Start game loop
         var that = this;
-        setInterval(function() {
+        this._tickInterval = setInterval(function() {
             that._tick();
 
         }, this._tickRate);
@@ -123,6 +123,10 @@ var Game = Class({
 
         }
 
+        if (this._players.length === 0) {
+            this._stop();
+        }
+
         this._frameTime = now;
 
     },
@@ -145,7 +149,7 @@ var Game = Class({
 
         this._clients.clear();
 
-        this._server.endGame(this);
+        this._server.getGames().remove(this);
         log(this, 'Ended');
 
     },
