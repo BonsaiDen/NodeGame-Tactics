@@ -57,7 +57,6 @@ var Client = Class({
 
         // Send intitial network data and game list
         this.send(network.Client.CONNECT, {});
-        this.gameList();
 
     },
 
@@ -69,16 +68,6 @@ var Client = Class({
 
         this.send(network.Client.HASH, {
             hash: this._hash
-        });
-
-    },
-
-    gameList: function() {
-
-        this.send(network.Game.LIST, {
-            games: this._server.getGames().map(function(game) {
-                return game.toMessage();
-            })
         });
 
     },
@@ -99,7 +88,16 @@ var Client = Class({
       *
       * In case @watching {Boolean} is `true` he will not be actively playing.
       */
-    join: function(gid, watching) {
+    joinGame: function(gid, watching) {
+
+        // Already in this game?
+        if (this._game && gid === this._game.id) {
+            this.error(network.Error.SAME_GAME, gid);
+            return;
+
+        } else if (this._game) {
+            this.leave();
+        }
 
         log(this, 'Joining game #' + gid)
 
@@ -120,15 +118,16 @@ var Client = Class({
     /**
       * Makes the client leave his current game.
       */
-    leave: function(disconnected) {
+    leaveGame: function(disconnected) {
 
         log(this, 'Leaving game #' + this._game.id)
         this._game.clientLeave(this, disconnected || false);
+        this.send(network.Client.Game.LEFT, {
+            id: this._game.id
+        });
+
         log(this, 'Left game #' + this._game.id);
         this._game = null;
-
-        // Send list of games once again
-        this.gameList();
 
     },
 
@@ -176,18 +175,14 @@ var Client = Class({
 
         msg.type = msg.type !== undefined ? msg.type : msg[0];
 
-        if (msg.type === network.Client.JOIN_GAME) {
+        if (msg.type === network.Client.Game.JOIN) {
+
+            this.joinGame(msg.game || 0, msg.watch || false);
+
+        } else if (msg.type === network.Client.Game.LEAVE) {
 
             if (this._game) {
-                this.leave();
-            }
-
-            this.join(msg.game || 0, msg.watch || false);
-
-        } else if (msg.type === network.Client.LEAVE_GAME) {
-
-            if (this._game) {
-                this.leave();
+                this.leaveGame();
             }
 
         } else if (this._game) {

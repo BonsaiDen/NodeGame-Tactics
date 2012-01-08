@@ -134,18 +134,18 @@ var Client = Class(Twist, {
             this._isConnected = true;
             this.clientConnect();
 
-        // Server settings for this client
-        } else if (msg.type === network.Client.SETTINGS) {
+        // Server settings for clients
+        } else if (msg.type === network.Server.SETTINGS) {
             console.log('client settings: ', msg);
 
         // List of games
-        } else if (msg.type === network.Game.LIST) {
+        } else if (msg.type === network.Server.Game.LIST) {
             console.log('running games: ', msg);
 
-        // Game settings
-        } else if (msg.type === network.Game.SETTINGS) {
+        // Game joined
+        } else if (msg.type === network.Client.Game.JOINED) {
 
-            console.log('game settings: ', msg);
+            console.log('game joined: ', msg);
             this._tickRate = msg.tickRate;
             this._logicRate = msg.logicRate;
             this._syncRate = msg.syncRate;
@@ -155,8 +155,13 @@ var Client = Class(Twist, {
                 this._isPlaying = true;
                 this._lastTick = this._tickCount;
                 this.start();
-                this.clientJoin();
+                this.onGameJoin(msg.id);
             }
+
+        // Game left
+        } else if (msg.type === network.Client.Game.LEFT) {
+            this.stop();
+            this.onGameLeave(msg.id);
 
         // Sync game ticks
         } else if (msg.type === network.Game.TICK) {
@@ -173,26 +178,30 @@ var Client = Class(Twist, {
         console.log('Closed');
     },
 
-    clientJoin: function() {
-        console.log('Joined game');
+    onGameJoin: function(id) {
+        console.log('Joined game #' + id);
     },
 
+    onGameLeave: function(id) {
+        console.log('Left game #' + id);
+    },
 
     // Interactions -----------------------------------------------------------
     join: function(id) {
 
-        this.send(network.Client.JOIN_GAME, {
+        this.send(network.Client.Game.JOIN, {
             game: 1
         });
 
     },
 
     leave: function() {
-
+        this.send(network.Client.Game.LEAVE);
     },
 
     send: function(type, msg) {
 
+        msg = msg || [];
         if (msg instanceof Array) {
             msg.unshift(type);
 

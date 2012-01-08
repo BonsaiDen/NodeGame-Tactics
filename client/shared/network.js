@@ -28,11 +28,16 @@
         // Gloabal 200-299
         Client: {
 
-            SETTINGS: 200,
             HASH: 201,
             CONNECT: 202,
-            JOIN_GAME: 203,
-            LEAVE_GAME: 204
+
+            // Send by / to a single player
+            Game: {
+                JOIN: 203,
+                LEAVE: 204,
+                JOINED: 205,
+                LEFT: 206
+            }
 
         },
 
@@ -41,16 +46,29 @@
 
             TICK: 0,
             SETTINGS: 301,
-            LIST: 302,
-            CLIENT_JOINED: 303,
-            CLIENT_LEFT: 304,
 
-            PLAYER_JOINED: 305,
-            PLAYER_LEFT: 306,
+            Client: {
+                JOINED: 303,
+                LEFT: 304,
+                LIST: 307
+            },
 
-            CLIENT_LIST: 307,
-            PLAYER_LIST: 308,
-            PLAYER_REJOINED: 300
+            Player: {
+                LIST: 308,
+                REJOINED: 300,
+                JOINED: 305,
+                LEFT: 306
+            }
+
+        },
+
+        Server: {
+
+            Game: {
+                LIST: 401
+            },
+
+            SETTINGS: 402
 
         },
 

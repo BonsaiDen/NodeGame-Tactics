@@ -85,7 +85,7 @@ var Server = Class({
 
         } else {
             conn.send(bison.encode({
-                type: network.Client.SETTINGS
+                type: network.Server.SETTINGS
             }));
         }
 
@@ -190,6 +190,7 @@ var Server = Class({
             // Create the game if it does not exists yet
             if (!this._games.has(gid)) {
                 this._games.add(new this._gameClass(this, gid));
+                this.sendGameList();
             }
 
             return this._games.get(gid);
@@ -214,9 +215,22 @@ var Server = Class({
         var game = this._games.get(gid);
         if (game) {
             this._games.remove(game);
+            this.sendGameList();
         }
 
     },
+
+    sendGameList: function() {
+
+        log(this, 'Game list');
+        this.broadcast(network.Server.Game.LIST, {
+            games: this._games.map(function(game) {
+                return game.toMessage();
+            })
+        });
+
+    },
+
 
     /**
       * {String} Returns a string based represenation of the object.

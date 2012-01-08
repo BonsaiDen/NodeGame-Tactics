@@ -149,7 +149,7 @@ var Game = Class({
 
         this._clients.clear();
 
-        this._server.getGames().remove(this);
+        this._server.removeGame(this);
         log(this, 'Ended');
 
     },
@@ -197,10 +197,10 @@ var Game = Class({
         this._clients.add(client);
 
         // Notify others
-        this.broadcast(network.Game.CLIENT_JOINED, client.toMessage(), [client]);
+        this.broadcast(network.Game.Client.JOINED, client.toMessage(), [client]);
 
         // Send list of clients to new one
-        client.send(network.Game.CLIENT_LIST, this._clients.map(function(cl) {
+        client.send(network.Game.Client.LIST, this._clients.map(function(cl) {
             return cl.toMessage(client === cl);
         }));
 
@@ -208,7 +208,8 @@ var Game = Class({
         this.broadcast(network.Game.TICK, [this._tickCount]);
 
         // Send game settings down to the new client
-        client.send(network.Game.SETTINGS, {
+        client.send(network.Client.Game.JOINED, {
+            id: this.id,
             tickRate: this._tickRate,
             logicRate: this._logicRate,
             syncRate: this._syncRate,
@@ -246,7 +247,7 @@ var Game = Class({
 
         }
 
-        client.send(network.Game.PLAYER_LIST, this._players.map(function(player) {
+        client.send(network.Game.Player.LIST, this._players.map(function(player) {
             return player.toMessage(client.player === player);
         }));
 
@@ -272,11 +273,19 @@ var Game = Class({
         // Send out leave message to other clients
         // Leaving the actual game is done by the player
         } else {
+
             log(this, 'Client left');
-            this.broadcast(network.Game.CLIENT_LEFT, client.toMessage(), [client]);
+            this.broadcast(network.Game.Client.LEFT, client.toMessage(), [client]);
+
+            // TODO break up relationship and use something else. A Map?
+            client.player.onLeave();
         }
 
         this._clients.remove(client);
+
+        if (this._players.length === 0) {
+            this._stop();
+        }
 
     },
 

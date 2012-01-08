@@ -57,8 +57,8 @@ var Player = Class({
         this._hash = null;
         this._disconnectTime = -1;
 
-        var type = reconnect ? network.Game.PLAYER_REJOINED
-                             : network.Game.PLAYER_JOINED;
+        var type = reconnect ? network.Game.Player.REJOINED
+                             : network.Game.Player.JOINED;
 
         this._game.broadcast(type, {
             id: this.id,
@@ -102,7 +102,7 @@ var Player = Class({
             this._client = null;
         }
 
-        this._game.broadcast(network.Game.PLAYER_LEFT, {
+        this._game.broadcast(network.Game.Player.LEFT, {
             id: this.id
 
         }, [this._client]);
