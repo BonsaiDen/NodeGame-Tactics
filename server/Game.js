@@ -45,7 +45,7 @@ var Game = Class({
         // Ticking
         this._tickTime = 0;
         this._tickRate = 66;
-        this._tickCount = 1;
+        this._tickCount = 0;
         this._tickInterval = null;
 
         // Game Time
@@ -58,20 +58,36 @@ var Game = Class({
         this._logicRate = 15;
         this._syncRate = 30;
 
-        // Start game loop
-        var that = this;
-        this._tickInterval = setInterval(function() {
-            that._tick();
-
-        }, this._tickRate);
-
+        this._isRunning = false;
         log(this, 'Created');
+
+        var that = this;
+        setTimeout(function() {
+            that.start();
+
+        }, 2000);
 
     },
 
 
     // Main Game loop ---------------------------------------------------------
-    _tick: function() {
+    start: function() {
+
+        this._isRunning = true;
+
+        console.log('starting???')
+        // Start game loop
+        var that = this;
+        this._tickInterval = setInterval(function() {
+            that.tick();
+
+        }, this._tickRate);
+
+        this._tickCount = 1;
+
+    },
+
+    tick: function() {
 
         var now = Date.now();
 
@@ -79,13 +95,14 @@ var Game = Class({
         while(this._tickTime < this._realTime) {
 
             if (this._startTime === -1) {
+                this.broadcast(network.Game.STARTED, []);
                 this._startTime = Date.now();
-                this.start();
+                this.onStart();
             }
 
             // Sync clients
             if (this._tickCount % this._syncRate === 0) {
-                this.broadcast(network.Game.TICK, [this._tickCount]);
+                this.broadcast(network.Game.TICK, []);
             }
 
             // Check for players who timed out
@@ -112,7 +129,7 @@ var Game = Class({
             // tick as the events were processed here
             if (this._tickCount % this._logicRate === 0) {
 
-                if (this.tick(this._tickTime, this._tickCount) === true) {
+                if (this.onTick(this._tickTime, this._tickCount) === true) {
                     this._stop();
                     break;
                 }
@@ -126,18 +143,20 @@ var Game = Class({
         }
 
         if (this._players.length === 0) {
-            this._stop();
+            this.stop();
         }
 
         this._frameTime = now;
 
     },
 
-    _stop: function() {
+    stop: function() {
 
-        this.stop();
+        this.onStop();
 
         clearInterval(this._tickInterval);
+
+        this.broadcast(network.Game.ENDED, []);
 
         this._players.each(function(player) {
             player.onLeave();
@@ -159,16 +178,16 @@ var Game = Class({
 
     // Game Logic -------------------------------------------------------------
     // ------------------------------------------------------------------------
-    start: function() {
+    onStart: function() {
         log(this, 'Started at', time(this._startTime), 'tick rate is '
                    + this._tickRate + 'ms');
     },
 
-    tick: function(t, tick) {
+    onTick: function(t, tick) {
         log(this, t, tick, this.getRandom());
     },
 
-    stop: function() {
+    onStop: function() {
         log(this, 'Stopped at', time(Date.now()), ' was running for '
                    + time(Date.now() - this._startTime)
                    + 'ms (' + this._tickCount + ' ticks)');
@@ -212,7 +231,7 @@ var Game = Class({
         this.broadcast(network.Game.TICK, []);
 
         // Send game settings down to the new client
-        client.send(network.Client.Game.JOINED, tick, {
+        client.send(network.Game.SETTINGS, tick, {
 
             id: this.id,
             tickRate: this._tickRate,
@@ -221,6 +240,11 @@ var Game = Class({
             randomSeed: this._randomSeed
 
         });
+
+        client.send(network.Client.Game.JOINED, tick, {
+            id: this.id
+        });
+
 
         // Add player or re-connect client to one
         if (!watching) {
@@ -347,6 +371,13 @@ var Game = Class({
       */
     getTick: function() {
         return this._tickCount;
+    },
+
+    /**
+      * {Boolean} True if the game is running
+      */
+    isRunning: function() {
+        return this._isRunning;
     }
 
 });

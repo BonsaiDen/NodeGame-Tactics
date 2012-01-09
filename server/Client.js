@@ -146,7 +146,6 @@ var Client = Class({
             msg.tick = tick;
         }
 
-        console.log(msg);
         return this._conn.send(bison.encode(msg));
 
     },

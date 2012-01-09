@@ -24,29 +24,32 @@
 // Imports --------------------------------------------------------------------
 var HashList = need('shared.lib.HashList'),
     WebSocket = need('server.lib.WebSocket'),
-    Client = need('server.Client');
+    Client = need('server.Client'),
+    crypto = require('crypto');
 
 
 // Game Server ----------------------------------------------------------------
 // ----------------------------------------------------------------------------
 var Server = Class({
 
-    constructor: function(port, gameClass, maxClients, maxGames) {
+    constructor: function(options) {
 
         // Clients
         this._clients = new HashList();
-        this._maxClients = maxClients || 60;
+        this._maxClients = options.maxClients || 60;
 
         // Game stuff
         this._games = new HashList();
-        this._maxGames = maxGames || 12;
-        this._gameClass = gameClass;
+        this._maxGames = options.maxGames || 12;
+        this._gameClass = options.gameClass;
 
         // Networking
         this._socket = new WebSocket();
         this._bytesSend = 0;
-        this._port = port || 4400;
+        this._port = options.port || 4400;
 
+
+        // Web Sockets
         var that = this;
         this._socket.on('connection', function(conn) {
             that.onConnection(conn);
@@ -60,11 +63,74 @@ var Server = Class({
             that.onClose(conn);
         });
 
+        // Authentication
+        this._authSessions = {};
+
+
+        // HTTP
+        this._httpHandler = options.httpHandler;
+        this._socket.on('request', function(req, res) {
+            that.onHTTPRequest(req, res);
+        });
+
         this._socket.listen(this._port);
 
         log(this, 'Started on port', this._port,
                   '| Max clients:', this._maxClients,
                   '| Max games:', this._maxGames);
+
+    },
+
+    /**
+      * Handle HTTP requests and authentication via Twitter
+      */
+    onHTTPRequest: function(req, res) {
+
+        var session = this.getSession(req, res);
+        console.log(session.secret);
+        this._httpHandler ? this._httpHandler(req, res) : null;
+
+    },
+
+    /**
+      * Simple http session via cookie.
+      */
+    getSession: function(req, res) {
+
+        var cookie = req.headers.cookie || '',
+            pos = cookie.indexOf('session='),
+            session = null,
+            key;
+
+        if (pos !== -1) {
+
+            key = cookie.substr(pos + 8, 32);
+            if (this._authSessions[key]) {
+                session = this._authSessions[key];
+
+            } else {
+                session = this._authSessions[key] = {};
+            }
+
+        }
+
+        if (session === null) {
+
+            var hash = crypto.createHash('md5');
+            hash.update(Date.now() + '-' + req.remoteAdress + '-' + req.remotePort);
+            hash.update(req.headers['user-agent'] || 'default');
+
+            key = hash.digest('hex');
+            session = this._authSessions[key] = {};
+
+            session.secret = Math.floor(Math.random() * 100);
+
+        }
+
+        session.key = key;
+        res.setHeader('Set-Cookie', 'session=' + session.key + '; ');
+
+        return session;
 
     },
 
@@ -183,6 +249,12 @@ var Server = Class({
 
 
     // Game Methods -----------------------------------------------------------
+    // ------------------------------------------------------------------------
+    createGame: function() {
+
+
+    },
+
     getGame: function(gid) {
 
         if (typeof gid === 'number' && gid > 0 && gid < this._maxGames) {
@@ -201,14 +273,6 @@ var Server = Class({
 
     },
 
-    getSocket: function() {
-        return this._socket;
-    },
-
-    getGames: function() {
-        return this._games;
-    },
-
     // TODO
     removeGame: function(gid) {
 
@@ -218,6 +282,10 @@ var Server = Class({
             this.sendGameList();
         }
 
+    },
+
+    getGames: function() {
+        return this._games;
     },
 
     sendGameList: function() {

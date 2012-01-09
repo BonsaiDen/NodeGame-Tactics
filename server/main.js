@@ -92,8 +92,11 @@ var Static = need('server.Static'),
 
 exports.start = function() {
 
-    var server = new Server(network.PORT, Game);
-    server.getSocket().on('request', new Static('../client'));
+    new Server({
+        port: network.PORT,
+        gameClass: Game,
+        httpHandler: new Static('../client')
+    });
 
 };
 

@@ -36,7 +36,8 @@
                 JOIN: 203,
                 LEAVE: 204,
                 JOINED: 205,
-                LEFT: 206
+                LEFT: 206,
+                CREATE: 207
             }
 
         },
@@ -46,6 +47,8 @@
 
             TICK: 0,
             SETTINGS: 301,
+            STARTED: 310,
+            ENDED: 311,
 
             Client: {
                 JOINED: 303,
@@ -65,7 +68,8 @@
         Server: {
 
             Game: {
-                LIST: 401
+                LIST: 401,
+                CREATED: 403
             },
 
             SETTINGS: 402

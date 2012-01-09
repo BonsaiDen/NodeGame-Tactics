@@ -127,11 +127,15 @@ var Client = Class(Twist, {
         this.join(1);
     },
 
+    onError: function(error) {
+        console.log('ERROR:', error);
+    },
+
     // TODO validate against tick count to ensure synced state
     onMessage: function(msg, initial) {
 
         msg.type = msg.type !== undefined ? msg.type : msg[0];
-        msg.tick = msg.tick !== undefined ? msg.tick : msg[1];
+        msg.tick = (msg.tick !== undefined ? msg.tick : msg[1]) || 0;
 
         // Set re-connect hash
         if (msg.type === network.Client.HASH) {
@@ -158,21 +162,30 @@ var Client = Class(Twist, {
             console.log('running games: ', msg);
             return true;
 
-        // Game joined
-        } else if (msg.type === network.Client.Game.JOINED) {
+        // Game settings
+        } else if (msg.type === network.Game.SETTINGS) {
 
-            console.log('game joined: ', msg);
+            console.log('game settings: ', msg);
             this._tickRate = msg.tickRate;
             this._logicRate = msg.logicRate;
             this._syncRate = msg.syncRate;
             this._randomSeed = msg.randomSeed;
 
+        // Game started
+        } else if (msg.type === network.Client.Game.JOINED) {
+            this.onGameJoin(msg.id);
+
+        // Game started
+        } else if (msg.type === network.Game.STARTED) {
+
+            console.log('GAME STARTED!!!');
             if (!this.isRunning()) {
                 this._isPlaying = true;
                 this._lastTick = this._tickCount;
                 this.start();
-                this.onGameJoin(msg.id);
             }
+
+            this.onGameStart(msg);
 
             return true;
 
@@ -181,13 +194,18 @@ var Client = Class(Twist, {
             this._tickSyncTime = Date.now();
             this._tickCount = msg[1];
             return true;
+
+        // Errors
+        } else if (msg.type == network.ERROR) {
+            this.onError(msg);
+            return true;
         }
 
 
         // Messages which need to be in sync with the tick count
         // these will be processed right before the next gam tick
         // -----------------------------------------------------
-        if (msg.tick > this._lastTick) {
+        if (msg.tick > 0 && msg.tick > this._lastTick) {
 
             if (initial) {
                 msg._uid = ++this._messageUid;
@@ -257,6 +275,7 @@ var Client = Class(Twist, {
             delete msg.type;
             if (!this._players.has(msg)) {
                 this._players.add(msg);
+                this.onPlayerJoin(msg);
             }
 
             this.onPlayerList(this._players);
@@ -266,6 +285,7 @@ var Client = Class(Twist, {
 
             if (this._players.has(msg)) {
                 this._players.remove(msg);
+                this.onPlayerLeave(msg);
             }
 
             this.onPlayerList(this._players);
@@ -309,9 +329,25 @@ var Client = Class(Twist, {
         console.log('Left game #' + id);
     },
 
+
+    onGameStart: function() {
+
+    },
+
+    onGameEnd: function() {
+
+    },
+
     onPlayerList: function(players) {
         console.log(players.toString());
+    },
 
+    onPlayerJoin: function(player) {
+        console.log('player joined', player);
+    },
+
+    onPlayerLeave: function(player) {
+        console.log('player left', player);
     },
 
     onClientList: function(clients) {
