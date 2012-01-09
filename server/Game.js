@@ -107,7 +107,9 @@ var Game = Class({
 
             // Check whether to stop this game
 
-            // Tick logic!
+            // Tick logic, this is synced with clients so that all
+            // messages that leave the server will be processed at the same
+            // tick as the events were processed here
             if (this._tickCount % this._logicRate === 0) {
 
                 if (this.tick(this._tickTime, this._tickCount) === true) {
@@ -115,7 +117,6 @@ var Game = Class({
                     break;
                 }
 
-                console.log(this._players.toString());
             }
 
             this._tickCount++;

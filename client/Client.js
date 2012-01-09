@@ -48,6 +48,8 @@ var Client = Class(Twist, {
 
         this._messageQueue = [];
 
+        this._messageUid = 0;
+
     },
 
     /**
@@ -111,7 +113,7 @@ var Client = Class(Twist, {
         };
 
         this.socket.onmessage = function(msg) {
-            that.onMessage(BISON.decode(msg.data));
+            that.onMessage(BISON.decode(msg.data), true);
         };
 
         this.socket.onclose = function() {
@@ -126,22 +128,10 @@ var Client = Class(Twist, {
     },
 
     // TODO validate against tick count to ensure synced state
-    onMessage: function(msg, queued) {
+    onMessage: function(msg, initial) {
 
         msg.type = msg.type !== undefined ? msg.type : msg[0];
-        msg.tick = (msg.tick !== undefined ? msg.tick : msg[1]) || -1;
-
-        // Do we need to wait before parsing this one?
-        if (msg.tick !== -1 && msg.tick > this._lastTick && msg.type !== network.Game.TICK) {
-
-            if (!queued) {
-                console.log('QUEUE', msg.tick);
-                this._messageQueue.push(msg);
-            }
-
-            return false;
-
-        }
+        msg.tick = msg.tick !== undefined ? msg.tick : msg[1];
 
         // Set re-connect hash
         if (msg.type === network.Client.HASH) {
@@ -151,18 +141,22 @@ var Client = Class(Twist, {
 
             } catch(e) {
             }
+            return true;
 
         } else if (!this._isConnected && msg.type === network.Client.CONNECT) {
             this._isConnected = true;
             this.onConnect();
+            return true;
 
         // Server settings for clients
         } else if (msg.type === network.Server.SETTINGS) {
             console.log('client settings: ', msg);
+            return true;
 
         // List of games
         } else if (msg.type === network.Server.Game.LIST) {
             console.log('running games: ', msg);
+            return true;
 
         // Game joined
         } else if (msg.type === network.Client.Game.JOINED) {
@@ -180,18 +174,39 @@ var Client = Class(Twist, {
                 this.onGameJoin(msg.id);
             }
 
-        // Game left
-        } else if (msg.type === network.Client.Game.LEFT) {
-
-            this.stop();
-            this._players.clear();
-            this._clients.clear();
-            this.onGameLeave(msg.id);
+            return true;
 
         // Sync game ticks
         } else if (msg.type === network.Game.TICK) {
             this._tickSyncTime = Date.now();
             this._tickCount = msg[1];
+            return true;
+        }
+
+
+        // Messages which need to be in sync with the tick count
+        // these will be processed right before the next gam tick
+        // -----------------------------------------------------
+        if (msg.tick > this._lastTick) {
+
+            if (initial) {
+                msg._uid = ++this._messageUid;
+                this._messageQueue.push(msg);
+            }
+
+            return false;
+
+        }
+
+        delete msg._uid;
+
+        // Game left
+        if (msg.type === network.Client.Game.LEFT) {
+
+            this.stop();
+            this._players.clear();
+            this._clients.clear();
+            this.onGameLeave(msg.id);
 
         // Client list
         } else if (msg.type == network.Game.Client.LIST) {
@@ -257,7 +272,6 @@ var Client = Class(Twist, {
 
         } else {
             console.log('other', msg);
-//            return msg;
         }
 
         return true;
@@ -266,15 +280,15 @@ var Client = Class(Twist, {
 
     onMessageQueue: function() {
 
+        // Sort messaged based on UID to ensure correct order
         this._messageQueue.sort(function(a, b) {
-            return a.tick - b.tick;
+            return a._uid - b._uid;
         });
 
-        console.log('queue', this._messageQueue.length);
         for(var i = 0; i < this._messageQueue.length; i++) {
 
-            console.log(this._messageQueue.length)
-            if (this.onMessage(this._messageQueue[i], true)) {
+            if (this.onMessage(this._messageQueue[i])) {
+                console.log(this._messageQueue[i]);
                 this._messageQueue.splice(i, 1);
                 i--;
             }
