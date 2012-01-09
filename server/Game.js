@@ -75,7 +75,6 @@ var Game = Class({
 
         this._isRunning = true;
 
-        console.log('starting???')
         // Start game loop
         var that = this;
         this._tickInterval = setInterval(function() {
@@ -142,7 +141,7 @@ var Game = Class({
 
         }
 
-        if (this._players.length === 0) {
+        if (this._players.length === 0 || this._tickCount > 100) {
             this.stop();
         }
 
@@ -152,24 +151,23 @@ var Game = Class({
 
     stop: function() {
 
-        this.onStop();
+        if (!this._isRunning) {
+            return;
+        }
 
+        this._isRunning = false;
         clearInterval(this._tickInterval);
 
-        this.broadcast(network.Game.ENDED, []);
+        this.onStop();
 
         this._players.each(function(player) {
             player.onLeave();
         });
 
         this._players.clear();
-
-        this._clients.each(function(client) {
-            client.onLeave();
-        });
-
         this._clients.clear();
 
+        this.broadcast(network.Game.ENDED, []);
         this._server.removeGame(this);
         log(this, 'Ended');
 
@@ -314,7 +312,7 @@ var Game = Class({
         this._clients.remove(client);
 
         if (this._players.length === 0) {
-            this._stop();
+            this.stop();
         }
 
         client.send(network.Client.Game.LEFT, this.getTick(), {
@@ -378,6 +376,13 @@ var Game = Class({
       */
     isRunning: function() {
         return this._isRunning;
+    },
+
+    /**
+      * TODO: Add Description
+      */
+    canBeJoined: function() {
+        return true; // !this.isRunning()
     }
 
 });

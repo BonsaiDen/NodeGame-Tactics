@@ -177,6 +177,7 @@ var Client = Class({
 
         if (msg.type === network.Client.Game.JOIN) {
 
+            // TODO do not allow joining of running games canBeJoined()
             this.joinGame(msg.game || 0, msg.watch || false);
 
         } else if (msg.type === network.Client.Game.LEAVE) {

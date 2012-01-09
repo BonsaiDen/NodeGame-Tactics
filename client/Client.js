@@ -69,7 +69,7 @@ var Client = Class(Twist, {
             var tick = lt + ct;
             if (tick > this._lastTick && tick % this._logicRate === 0) {
 
-                this.onMessageQueue(tick);
+                this.onMessageQueue();
                 this._randomState = tick;
                 this.tick((tick * this._tickRate) - this._tickRate, tick);
                 this._lastTick = tick;
@@ -132,7 +132,7 @@ var Client = Class(Twist, {
     },
 
     // TODO validate against tick count to ensure synced state
-    onMessage: function(msg, initial) {
+    onMessage: function(msg, initial, flush) {
 
         msg.type = msg.type !== undefined ? msg.type : msg[0];
         msg.tick = (msg.tick !== undefined ? msg.tick : msg[1]) || 0;
@@ -157,11 +157,6 @@ var Client = Class(Twist, {
             console.log('client settings: ', msg);
             return true;
 
-        // List of games
-        } else if (msg.type === network.Server.Game.LIST) {
-            console.log('running games: ', msg);
-            return true;
-
         // Game settings
         } else if (msg.type === network.Game.SETTINGS) {
 
@@ -171,6 +166,22 @@ var Client = Class(Twist, {
             this._syncRate = msg.syncRate;
             this._randomSeed = msg.randomSeed;
 
+            return true;
+
+        // Game ended
+        } else if (msg.type === network.Game.ENDED) {
+
+            this.onMessageQueue(true);
+            this.onGameEnd(msg);
+            console.log('game ended')
+            this.stop();
+            return true;
+
+        // List of games
+        } else if (msg.type === network.Server.Game.LIST) {
+            console.log('running games: ', msg);
+            return true;
+
         // Game started
         } else if (msg.type === network.Client.Game.JOINED) {
             this.onGameJoin(msg.id);
@@ -178,7 +189,7 @@ var Client = Class(Twist, {
         // Game started
         } else if (msg.type === network.Game.STARTED) {
 
-            console.log('GAME STARTED!!!');
+            console.log('game started');
             if (!this.isRunning()) {
                 this._isPlaying = true;
                 this._lastTick = this._tickCount;
@@ -205,7 +216,7 @@ var Client = Class(Twist, {
         // Messages which need to be in sync with the tick count
         // these will be processed right before the next gam tick
         // -----------------------------------------------------
-        if (msg.tick > 0 && msg.tick > this._lastTick) {
+        if (!flush && msg.tick > 0 && msg.tick > this._lastTick) {
 
             if (initial) {
                 msg._uid = ++this._messageUid;
@@ -298,7 +309,7 @@ var Client = Class(Twist, {
 
     },
 
-    onMessageQueue: function() {
+    onMessageQueue: function(flush) {
 
         // Sort messaged based on UID to ensure correct order
         this._messageQueue.sort(function(a, b) {
@@ -307,8 +318,7 @@ var Client = Class(Twist, {
 
         for(var i = 0; i < this._messageQueue.length; i++) {
 
-            if (this.onMessage(this._messageQueue[i])) {
-                console.log(this._messageQueue[i]);
+            if (this.onMessage(this._messageQueue[i], false, flush)) {
                 this._messageQueue.splice(i, 1);
                 i--;
             }
@@ -331,6 +341,10 @@ var Client = Class(Twist, {
 
 
     onGameStart: function() {
+
+    },
+
+    onGameEnd: function() {
 
     },
 
