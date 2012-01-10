@@ -339,10 +339,18 @@ var Client = Class(Twist, {
 
 
         case network.Game.Client.JOINED:
+        case network.Game.Client.REJOINED:
 
             if (!this._clients.has(msg)) {
+
                 this._clients.add(msg);
-                this.emit('game.client.join', msg);
+
+                if (type === network.Game.Client.JOINED) {
+                    this.emit('game.client.join', msg);
+                } else {
+                    this.emit('game.client.rejoin', msg);
+                }
+
                 this.emit('game.client.list', this._clients);
             }
             break;
