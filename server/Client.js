@@ -58,6 +58,7 @@ var Client = Class({
 
         // Send intitial network data and game list
         this.send(network.Client.CONNECT, 0, {});
+        this._server.sendGameList(this);
 
     },
 

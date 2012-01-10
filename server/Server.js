@@ -87,7 +87,6 @@ var Server = Class({
     onHTTPRequest: function(req, res) {
 
         var session = this.getSession(req, res);
-        console.log(session.secret);
         this._httpHandler ? this._httpHandler(req, res) : null;
 
     },
@@ -288,14 +287,22 @@ var Server = Class({
         return this._games;
     },
 
-    sendGameList: function() {
+    /**
+      * TODO: Add Description
+      */
+    sendGameList: function(client) {
 
-        log(this, 'Game list');
-        this.broadcast(network.Server.Game.LIST, {
-            games: this._games.map(function(game) {
-                return game.toMessage();
-            })
+        var list = this._games.map(function(game) {
+            return game.toMessage();
         });
+
+        if (client) {
+            client.send(network.Server.Game.LIST, 0, list);
+
+        } else {
+            log(this, 'Game list to all');
+            this.broadcast(network.Server.Game.LIST, list);
+        }
 
     },
 

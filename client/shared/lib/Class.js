@@ -64,7 +64,9 @@
         // We assign this here so that we don't inherit constructors
         // Which would break alot of stuff
         var ctor;
-        if (props.hasOwnProperty('constructor') && typeof props.constructor === 'function') {
+        if (props.hasOwnProperty('constructor')
+            && typeof props.constructor === 'function') {
+
             ctor = props.constructor;
 
         } else {
@@ -104,6 +106,27 @@
                 if (statics.hasOwnProperty(i)) {
                     ctor[i] = statics[i];
                 }
+            }
+
+        }
+
+        // Extend prototype
+        if (props.hasOwnProperty('prototype')) {
+
+            var protos = props['prototype'];
+            if (protos instanceof Array) {
+
+                for(var i = 0, l = protos.length; i < l; i++) {
+
+                    var p = protos[i].prototype;
+                    for(var e in p) {
+                        if (p.hasOwnProperty(e)) {
+                            ctor.prototype[e] = p[e];
+                        }
+                    }
+
+                }
+
             }
 
         }

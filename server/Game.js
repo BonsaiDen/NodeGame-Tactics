@@ -141,7 +141,7 @@ var Game = Class({
 
         }
 
-        if (this._players.length === 0 || this._tickCount > 100) {
+        if (this._players.length === 0 || this._tickCount > 1000) {
             this.stop();
         }
 
@@ -274,6 +274,10 @@ var Game = Class({
 
         }
 
+        if (this.isRunning()) {
+            client.send(network.Game.STARTED, tick, []);
+        }
+
         client.send(network.Game.Player.LIST, tick, this._players.map(function(player) {
             return player.toMessage(client.getPlayer() === player);
         }));
@@ -303,12 +307,15 @@ var Game = Class({
         } else {
 
             log(this, 'Client left');
-            this.broadcast(network.Game.Client.LEFT, client.toMessage(), [client]);
 
             // TODO break up relationship and use something else. A Map?
-            client.getPlayer().onLeave();
+            if (client.getPlayer()) {
+                client.getPlayer().onLeave();
+            }
+
         }
 
+        this.broadcast(network.Game.Client.LEFT, client.toMessage(), [client]);
         this._clients.remove(client);
 
         if (this._players.length === 0) {

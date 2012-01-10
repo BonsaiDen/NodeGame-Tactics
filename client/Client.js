@@ -25,9 +25,12 @@
 // ----------------------------------------------------------------------------
 var Client = Class(Twist, {
 
+    prototype: [Emitter],
+
     constructor: function(updateFps, renderFps) {
 
         Super(updateFps, renderFps);
+        Emitter(this);
 
         this._isConnected = false;
         this._isPlaying = false;
@@ -69,7 +72,7 @@ var Client = Class(Twist, {
             var tick = lt + ct;
             if (tick > this._lastTick && tick % this._logicRate === 0) {
 
-                this.onMessageQueue();
+                this._processMessageQueue();
                 this._randomState = tick;
                 this.tick((tick * this._tickRate) - this._tickRate, tick);
                 this._lastTick = tick;
@@ -113,102 +116,118 @@ var Client = Class(Twist, {
         };
 
         this.socket.onmessage = function(msg) {
-            that.onMessage(BISON.decode(msg.data), true);
+            that._handleMessage(BISON.decode(msg.data), true);
         };
 
-        this.socket.onclose = function() {
+        this.socket.onclose = function(msg) {
+            console.log(msg);
             that.stop();
-            that.onClose();
+            that.emit('network.close');
         };
 
-    },
-
-    onConnect: function() {
-        this.join(1);
-    },
-
-    onError: function(error) {
-        console.log('ERROR:', error);
     },
 
     // TODO validate against tick count to ensure synced state
-    onMessage: function(msg, initial, flush) {
+    _handleMessage: function(msg, initial, flush) {
 
-        msg.type = msg.type !== undefined ? msg.type : msg[0];
-        msg.tick = (msg.tick !== undefined ? msg.tick : msg[1]) || 0;
+        // Add UID
+        msg.uid = ++this._messageUid;
+
+        function clean(msg, tickless) {
+
+            delete msg.uid;
+            if (msg instanceof Array) {
+                msg.shift();
+                msg.tick = msg.shift();
+
+            } else {
+                delete msg.type;
+            }
+
+            if (tickless) {
+                delete msg.tick;
+            }
+
+            return msg;
+
+        }
+
+        var type = msg.type !== undefined ? msg.type : msg[0],
+            tick = (msg.tick !== undefined ? msg.tick : msg[1]) || 0;
 
         // Set re-connect hash
-        if (msg.type === network.Client.HASH) {
+        if (type === network.Client.HASH) {
 
             try {
                 localStorage.setItem(this.key, msg.hash);
 
             } catch(e) {
             }
+
             return true;
 
-        } else if (!this._isConnected && msg.type === network.Client.CONNECT) {
+        // Initial connect
+        } else if (!this._isConnected && type === network.Client.CONNECT) {
+
             this._isConnected = true;
-            this.onConnect();
+            this.emit('network.connect');
             return true;
 
         // Server settings for clients
-        } else if (msg.type === network.Server.SETTINGS) {
-            console.log('client settings: ', msg);
+        } else if (type === network.Server.SETTINGS) {
+
+            this.emit('server.settings', clean(msg, true));
             return true;
 
         // Game settings
-        } else if (msg.type === network.Game.SETTINGS) {
+        } else if (type === network.Game.SETTINGS) {
 
-            console.log('game settings: ', msg);
             this._tickRate = msg.tickRate;
             this._logicRate = msg.logicRate;
             this._syncRate = msg.syncRate;
             this._randomSeed = msg.randomSeed;
-
+            this.emit('game.settings', clean(msg, true));
             return true;
 
         // Game ended
-        } else if (msg.type === network.Game.ENDED) {
-
-            this.onMessageQueue(true);
-            this.onGameEnd(msg);
-            console.log('game ended')
+        } else if (type === network.Game.ENDED) {
+            this._processMessageQueue(true);
+            this.emit('game.end', clean(msg));
             this.stop();
             return true;
 
         // List of games
-        } else if (msg.type === network.Server.Game.LIST) {
-            console.log('running games: ', msg);
+        } else if (type === network.Server.Game.LIST) {
+
+            this.emit('server.game.list', clean(msg, true));
             return true;
 
         // Game started
-        } else if (msg.type === network.Client.Game.JOINED) {
-            this.onGameJoin(msg.id);
+        } else if (type === network.Client.Game.JOINED) {
+            this.emit('game.join', clean(msg));
+            return true;
 
         // Game started
-        } else if (msg.type === network.Game.STARTED) {
+        } else if (type === network.Game.STARTED) {
 
-            console.log('game started');
             if (!this.isRunning()) {
                 this._isPlaying = true;
                 this._lastTick = this._tickCount;
+                this.emit('game.start', clean(msg, true));
                 this.start();
             }
-
-            this.onGameStart(msg);
 
             return true;
 
         // Sync game ticks
-        } else if (msg.type === network.Game.TICK) {
+        } else if (type === network.Game.TICK) {
             this._tickSyncTime = Date.now();
             this._tickCount = msg[1];
             return true;
 
         // Errors
-        } else if (msg.type == network.ERROR) {
-            this.onError(msg);
+        } else if (type == network.ERROR) {
+            this.emit('network.error', clean(msg, true));
             return true;
         }
 
@@ -216,10 +235,9 @@ var Client = Class(Twist, {
         // Messages which need to be in sync with the tick count
         // these will be processed right before the next gam tick
         // -----------------------------------------------------
-        if (!flush && msg.tick > 0 && msg.tick > this._lastTick) {
+        if (!flush && tick > 0 && tick > this._lastTick) {
 
             if (initial) {
-                msg._uid = ++this._messageUid;
                 this._messageQueue.push(msg);
             }
 
@@ -227,18 +245,19 @@ var Client = Class(Twist, {
 
         }
 
-        delete msg._uid;
+        // Clean up, we will use the message in any case now
+        msg = clean(msg);
 
-        // Game left
-        if (msg.type === network.Client.Game.LEFT) {
+        // This client left the game
+        if (type === network.Client.Game.LEFT) {
 
+            this.emit('game.leave', msg);
             this.stop();
             this._players.clear();
             this._clients.clear();
-            this.onGameLeave(msg.id);
 
-        // Client list
-        } else if (msg.type == network.Game.Client.LIST) {
+        // Client list for the game
+        } else if (type == network.Game.Client.LIST) {
 
             this._clients.clear();
 
@@ -247,29 +266,28 @@ var Client = Class(Twist, {
                 this._clients.add(list[i]);
             }
 
-            this.onClientList(this._clients);
+            this.emit('game.client.list', this._clients);
 
-        // Client joined
-        } else if (msg.type == network.Game.Client.JOINED) {
+        // Another Client joined
+        } else if (type == network.Game.Client.JOINED) {
 
-            delete msg.type;
             if (!this._clients.has(msg)) {
                 this._clients.add(msg);
+                this.emit('game.client.join', msg);
+                this.emit('game.client.list', this._clients);
             }
 
-            this.onClientList(this._clients);
-
-        // Client left
-        } else if (msg.type == network.Game.Client.LEFT) {
+        // Another Client left
+        } else if (type == network.Game.Client.LEFT) {
 
             if (this._clients.has(msg)) {
                 this._clients.remove(msg);
+                this.emit('game.client.leave', msg);
+                this.emit('game.client.list', this._clients);
             }
 
-            this.onClientList(this._clients);
-
         // Player list
-        } else if (msg.type == network.Game.Player.LIST) {
+        } else if (type == network.Game.Player.LIST) {
 
             this._players.clear();
 
@@ -278,47 +296,44 @@ var Client = Class(Twist, {
                 this._players.add(list[i]);
             }
 
-            this.onPlayerList(this._players);
+            this.emit('game.player.list', this._players);
 
         // Player joined
-        } else if (msg.type == network.Game.Player.JOINED) {
+        } else if (type == network.Game.Player.JOINED) {
 
-            delete msg.type;
             if (!this._players.has(msg)) {
                 this._players.add(msg);
-                this.onPlayerJoin(msg);
+                this.emit('game.player.join', msg);
+                this.emit('game.player.list', this._players);
             }
 
-            this.onPlayerList(this._players);
-
         // Player left
-        } else if (msg.type == network.Game.Player.LEFT) {
+        } else if (type == network.Game.Player.LEFT) {
 
             if (this._players.has(msg)) {
                 this._players.remove(msg);
-                this.onPlayerLeave(msg);
+                this.emit('game.player.leave', msg);
+                this.emit('game.player.list', this._players);
             }
 
-            this.onPlayerList(this._players);
-
         } else {
-            console.log('other', msg);
+            this.emit('message', type, msg);
         }
 
         return true;
 
     },
 
-    onMessageQueue: function(flush) {
+    _processMessageQueue: function(flush) {
 
         // Sort messaged based on UID to ensure correct order
         this._messageQueue.sort(function(a, b) {
-            return a._uid - b._uid;
+            return a.uid - b.uid;
         });
 
         for(var i = 0; i < this._messageQueue.length; i++) {
 
-            if (this.onMessage(this._messageQueue[i], false, flush)) {
+            if (this._handleMessage(this._messageQueue[i], false, flush)) {
                 this._messageQueue.splice(i, 1);
                 i--;
             }
@@ -327,46 +342,6 @@ var Client = Class(Twist, {
 
     },
 
-    onClose: function() {
-        console.log('Closed');
-    },
-
-    onGameJoin: function(id) {
-        console.log('Joined game #' + id);
-    },
-
-    onGameLeave: function(id) {
-        console.log('Left game #' + id);
-    },
-
-
-    onGameStart: function() {
-
-    },
-
-    onGameEnd: function() {
-
-    },
-
-    onGameEnd: function() {
-
-    },
-
-    onPlayerList: function(players) {
-        console.log(players.toString());
-    },
-
-    onPlayerJoin: function(player) {
-        console.log('player joined', player);
-    },
-
-    onPlayerLeave: function(player) {
-        console.log('player left', player);
-    },
-
-    onClientList: function(clients) {
-
-    },
 
     // Interactions -----------------------------------------------------------
     join: function(id) {
@@ -381,6 +356,8 @@ var Client = Class(Twist, {
         this.send(network.Client.Game.LEAVE);
     },
 
+
+    // Networking -------------------------------------------------------------
     send: function(type, msg, ping) {
 
         msg = msg || {};
