@@ -15,7 +15,9 @@ build upon.
 - ✓ Server that can handle multiple games / rooms
 - ✓ Tick synced Server / Clients with synced RNG and time
 - ✓ Joining / Leaving Games 
-- Sync Player / Client lists
+- ✓ Sync Player / Client lists
+- o Simple Event System on Server and Client
+- Map players to clients and the other way around on the client
 - Twitter login
 - (auto) Choosing of player colors
 - Simple Chat 
@@ -40,4 +42,7 @@ is seeded by the server. Fly paths of ships are caluclated via a time based
 interpolation, effects and everything else will also use the RNG.
 
 Of course, actual validation will be performed by the server.
+
+
+
 
