@@ -101,7 +101,7 @@ var Game = Class({
 
             // Sync clients
             if (this._tickCount % this._syncRate === 0) {
-                this.broadcast(network.Game.TICK, []);
+                this.broadcast(network.TICK_OFFSET);
             }
 
             // Check for players who timed out
@@ -226,7 +226,7 @@ var Game = Class({
         }));
 
         // Sync all clients game ticker (so random is "synced" too)
-        this.broadcast(network.Game.TICK, []);
+        this.broadcast(network.TICK_OFFSET);
 
         // Send game settings down to the new client
         client.send(network.Game.SETTINGS, tick, {
@@ -355,11 +355,19 @@ var Game = Class({
     broadcast: function(type, msg, exclude) {
 
         // Add the tick to the message
-        if (msg instanceof Array) {
-            msg.unshift(this._tickCount);
+        if (type < network.TICK_OFFSET) {
 
+            if (msg instanceof Array) {
+                msg.unshift(this._tickCount);
+
+            } else {
+                msg.tick = this._tickCount;
+            }
+
+        // Send tick updates
         } else {
-            msg.tick = this._tickCount;
+            msg = [];
+            type += this._tickCount;
         }
 
         if (exclude) {

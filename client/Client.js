@@ -36,7 +36,7 @@ var Client = Class(Twist, {
         this._isPlaying = false;
 
         this._tickRate = 0;
-        this._tickCount = -1;
+        this._tickCount = 0;
         this._tickSyncTime = -1;
 
         this._players = new HashList();
@@ -120,9 +120,8 @@ var Client = Class(Twist, {
         };
 
         this.socket.onclose = function(msg) {
-            console.log(msg);
             that.stop();
-            that.emit('network.close');
+            that.emit('network.close', !!msg.wasClean);
         };
 
     },
@@ -198,7 +197,6 @@ var Client = Class(Twist, {
 
         // List of games
         } else if (type === network.Server.Game.LIST) {
-
             this.emit('server.game.list', clean(msg, true));
             return true;
 
@@ -220,9 +218,9 @@ var Client = Class(Twist, {
             return true;
 
         // Sync game ticks
-        } else if (type === network.Game.TICK) {
+        } else if (type >= network.TICK_OFFSET) {
             this._tickSyncTime = Date.now();
-            this._tickCount = msg[1];
+            this._tickCount = msg[0] - network.TICK_OFFSET;
             return true;
 
         // Errors

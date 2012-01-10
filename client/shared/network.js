@@ -24,6 +24,7 @@
     var network = {
 
         PORT: 13451,
+        TICK_OFFSET: 2048,
 
         // Gloabal 200-299
         Client: {
@@ -45,7 +46,6 @@
         // Games 300-399
         Game: {
 
-            TICK: 0,
             SETTINGS: 301,
             STARTED: 310,
             ENDED: 311,
