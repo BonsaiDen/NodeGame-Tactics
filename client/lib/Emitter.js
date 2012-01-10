@@ -54,7 +54,8 @@ Emitter.prototype = {
         var events = this.__events[name],
             stopped = false;
 
-        console.log(arguments)
+        var id = name;
+        console.log(id, arguments)
         if (events) {
 
             var call = Function.prototype.call;

@@ -55,7 +55,7 @@ var Game = Class({
 
         this._randomSeed = 500000 + Math.floor((Math.random() * 1000000));
         this._randomState = 0;
-        this._logicRate = 15;
+        this._logicRate = 10;
         this._syncRate = 30;
 
         this._isRunning = false;

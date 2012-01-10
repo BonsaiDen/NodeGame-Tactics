@@ -116,230 +116,15 @@ var Client = Class(Twist, {
         };
 
         this.socket.onmessage = function(msg) {
-            that._handleMessage(BISON.decode(msg.data), true);
+            that._onMessage(BISON.decode(msg.data), true);
         };
 
         this.socket.onclose = function(msg) {
             that.stop();
-            that.emit('network.close', !!msg.wasClean);
+            that.emit('network.close', !msg.wasClean);
         };
 
     },
-
-    // TODO validate against tick count to ensure synced state
-    _handleMessage: function(msg, initial, flush) {
-
-        // Add UID
-        msg.uid = ++this._messageUid;
-
-        function clean(msg, tickless) {
-
-            delete msg.uid;
-            if (msg instanceof Array) {
-                msg.shift();
-                msg.tick = msg.shift();
-
-            } else {
-                delete msg.type;
-            }
-
-            if (tickless) {
-                delete msg.tick;
-            }
-
-            return msg;
-
-        }
-
-        var type = msg.type !== undefined ? msg.type : msg[0],
-            tick = (msg.tick !== undefined ? msg.tick : msg[1]) || 0;
-
-        // Set re-connect hash
-        if (type === network.Client.HASH) {
-
-            try {
-                localStorage.setItem(this.key, msg.hash);
-
-            } catch(e) {
-            }
-
-            return true;
-
-        // Initial connect
-        } else if (!this._isConnected && type === network.Client.CONNECT) {
-
-            this._isConnected = true;
-            this.emit('network.connect');
-            return true;
-
-        // Server settings for clients
-        } else if (type === network.Server.SETTINGS) {
-
-            this.emit('server.settings', clean(msg, true));
-            return true;
-
-        // Game settings
-        } else if (type === network.Game.SETTINGS) {
-
-            this._tickRate = msg.tickRate;
-            this._logicRate = msg.logicRate;
-            this._syncRate = msg.syncRate;
-            this._randomSeed = msg.randomSeed;
-            this.emit('game.settings', clean(msg, true));
-            return true;
-
-        // Game ended
-        } else if (type === network.Game.ENDED) {
-            this._processMessageQueue(true);
-            this.emit('game.end', clean(msg));
-            this.stop();
-            return true;
-
-        // List of games
-        } else if (type === network.Server.Game.LIST) {
-            this.emit('server.game.list', clean(msg, true));
-            return true;
-
-        // Game started
-        } else if (type === network.Client.Game.JOINED) {
-            this.emit('game.join', clean(msg));
-            return true;
-
-        // Game started
-        } else if (type === network.Game.STARTED) {
-
-            if (!this.isRunning()) {
-                this._isPlaying = true;
-                this._lastTick = this._tickCount;
-                this.emit('game.start', clean(msg, true));
-                this.start();
-            }
-
-            return true;
-
-        // Sync game ticks
-        } else if (type >= network.TICK_OFFSET) {
-            this._tickSyncTime = Date.now();
-            this._tickCount = msg[0] - network.TICK_OFFSET;
-            return true;
-
-        // Errors
-        } else if (type == network.ERROR) {
-            this.emit('network.error', clean(msg, true));
-            return true;
-        }
-
-
-        // Messages which need to be in sync with the tick count
-        // these will be processed right before the next gam tick
-        // -----------------------------------------------------
-        if (!flush && tick > 0 && tick > this._lastTick) {
-
-            if (initial) {
-                this._messageQueue.push(msg);
-            }
-
-            return false;
-
-        }
-
-        // Clean up, we will use the message in any case now
-        msg = clean(msg);
-
-        // This client left the game
-        if (type === network.Client.Game.LEFT) {
-
-            this.emit('game.leave', msg);
-            this.stop();
-            this._players.clear();
-            this._clients.clear();
-
-        // Client list for the game
-        } else if (type == network.Game.Client.LIST) {
-
-            this._clients.clear();
-
-            var list = msg.slice(2);
-            for(var i = 0, l = list.length; i < l; i++) {
-                this._clients.add(list[i]);
-            }
-
-            this.emit('game.client.list', this._clients);
-
-        // Another Client joined
-        } else if (type == network.Game.Client.JOINED) {
-
-            if (!this._clients.has(msg)) {
-                this._clients.add(msg);
-                this.emit('game.client.join', msg);
-                this.emit('game.client.list', this._clients);
-            }
-
-        // Another Client left
-        } else if (type == network.Game.Client.LEFT) {
-
-            if (this._clients.has(msg)) {
-                this._clients.remove(msg);
-                this.emit('game.client.leave', msg);
-                this.emit('game.client.list', this._clients);
-            }
-
-        // Player list
-        } else if (type == network.Game.Player.LIST) {
-
-            this._players.clear();
-
-            var list = msg.slice(2);
-            for(var i = 0, l = list.length; i < l; i++) {
-                this._players.add(list[i]);
-            }
-
-            this.emit('game.player.list', this._players);
-
-        // Player joined
-        } else if (type == network.Game.Player.JOINED) {
-
-            if (!this._players.has(msg)) {
-                this._players.add(msg);
-                this.emit('game.player.join', msg);
-                this.emit('game.player.list', this._players);
-            }
-
-        // Player left
-        } else if (type == network.Game.Player.LEFT) {
-
-            if (this._players.has(msg)) {
-                this._players.remove(msg);
-                this.emit('game.player.leave', msg);
-                this.emit('game.player.list', this._players);
-            }
-
-        } else {
-            this.emit('message', type, msg);
-        }
-
-        return true;
-
-    },
-
-    _processMessageQueue: function(flush) {
-
-        // Sort messaged based on UID to ensure correct order
-        this._messageQueue.sort(function(a, b) {
-            return a.uid - b.uid;
-        });
-
-        for(var i = 0; i < this._messageQueue.length; i++) {
-
-            if (this._handleMessage(this._messageQueue[i], false, flush)) {
-                this._messageQueue.splice(i, 1);
-                i--;
-            }
-
-        }
-
-    },
-
 
     // Interactions -----------------------------------------------------------
     join: function(id) {
@@ -374,10 +159,6 @@ var Client = Class(Twist, {
 
     },
 
-    ping: function() {
-        this.send(1000, {}, true);
-    },
-
 
     // Getter / Setter --------------------------------------------------------
     // ------------------------------------------------------------------------
@@ -405,6 +186,257 @@ var Client = Class(Twist, {
 
     getPlayer: function() {
         return this._players;
+    },
+
+
+    // Message Handling -------------------------------------------------------
+    // ------------------------------------------------------------------------
+    _onMessage: function(msg, initial, flush) {
+
+        // Get info from msg object
+        var type = msg.type !== undefined ? msg.type : msg[0],
+            tick = (msg.tick !== undefined ? msg.tick : msg[1]) || 0;
+
+        // Handle basic message which are not synced with tick counts
+        var ret = this._handleMessageBase(type, tick, msg);
+        if (ret === false) {
+
+            // Messages which need to be in sync with the tick count
+            // these will be processed right before the next gam tick
+            // -----------------------------------------------------
+            if (!flush && tick > 0 && tick > this._lastTick) {
+
+                if (initial) {
+                    msg.uid = ++this._messageUid;
+                    this._messageQueue.push(msg);
+                }
+
+            } else {
+                ret = this._handleMessage(type, tick, this.stripMessage(msg))
+            }
+
+        }
+
+        return ret;
+
+    },
+
+    // Handle basic messages that don't need tick syncing
+    _handleMessageBase: function(type, tick, msg) {
+
+        var strip = this.stripMessage;
+
+        switch(type) {
+
+        case network.Client.HASH:
+
+            try {
+                localStorage.setItem(this.key, msg.hash);
+
+            } catch(e) {
+            }
+
+            break;
+
+
+        case network.Client.CONNECT:
+            this._isConnected = true;
+            this.emit('network.connect');
+            break;
+
+
+        case network.Server.SETTINGS:
+            this.emit('server.settings', strip(msg, true));
+            break;
+
+
+        case network.Game.SETTINGS:
+            this._tickRate = msg.tickRate;
+            this._logicRate = msg.logicRate;
+            this._syncRate = msg.syncRate;
+            this._randomSeed = msg.randomSeed;
+            this.emit('game.settings', strip(msg, true));
+            break;
+
+
+        case network.Game.ENDED:
+            this._processMessageQueue(true);
+            this.emit('game.end', strip(msg));
+            this.stop();
+            break;
+
+
+        case network.Server.Game.LIST:
+            this.emit('server.game.list', strip(msg, true));
+            break;
+
+
+        case network.Client.Game.JOINED:
+            this.emit('game.join', strip(msg));
+            break;
+
+
+        case network.Game.STARTED:
+            if (!this.isRunning()) {
+                this._isPlaying = true;
+                this._lastTick = this._tickCount;
+                this.emit('game.start', strip(msg, true));
+                this.start();
+            }
+            break;
+
+
+        case network.ERROR:
+            this.emit('network.error', strip(msg, true));
+            break;
+
+
+        default:
+
+            if (type >= network.TICK_OFFSET) {
+                this._tickSyncTime = Date.now();
+                this._tickCount = msg[0] - network.TICK_OFFSET;
+                return true;
+
+            } else {
+                return false;
+
+            }
+
+            break;
+
+        }
+
+        return true;
+
+    },
+
+    // Handle all messages that do need tick syncing
+    _handleMessage: function(type, tick, msg) {
+
+        switch(type) {
+
+        case network.Client.Game.LEFT:
+
+            this.emit('game.leave', msg);
+            this.stop();
+            this._players.clear();
+            this._clients.clear();
+            break;
+
+
+        case network.Game.Client.LIST:
+
+            this._clients.clear();
+
+            var list = msg.slice(2);
+            for(var i = 0, l = list.length; i < l; i++) {
+                this._clients.add(list[i]);
+            }
+
+            this.emit('game.client.list', this._clients);
+            break;
+
+
+        case network.Game.Client.JOINED:
+
+            if (!this._clients.has(msg)) {
+                this._clients.add(msg);
+                this.emit('game.client.join', msg);
+                this.emit('game.client.list', this._clients);
+            }
+            break;
+
+
+        case network.Game.Client.LEFT:
+
+            if (this._clients.has(msg)) {
+                this._clients.remove(msg);
+                this.emit('game.client.leave', msg);
+                this.emit('game.client.list', this._clients);
+            }
+            break;
+
+
+        case network.Game.Player.LIST:
+
+            this._players.clear();
+
+            var list = msg.slice(2);
+            for(var i = 0, l = list.length; i < l; i++) {
+                this._players.add(list[i]);
+            }
+
+            this.emit('game.player.list', this._players);
+            break;
+
+
+        case network.Game.Player.JOINED:
+
+            if (!this._players.has(msg)) {
+                this._players.add(msg);
+                this.emit('game.player.join', msg);
+                this.emit('game.player.list', this._players);
+            }
+            break;
+
+
+        case network.Game.Player.LEFT:
+
+            if (this._players.has(msg)) {
+                this._players.remove(msg);
+                this.emit('game.player.leave', msg);
+                this.emit('game.player.list', this._players);
+            }
+            break;
+
+
+
+        default:
+            this.emit('message', type, msg);
+            break;
+
+        }
+
+        return true;
+
+    },
+
+    _processMessageQueue: function(flush) {
+
+        // Sort messaged based on UID to ensure correct order
+        this._messageQueue.sort(function(a, b) {
+            return a.uid - b.uid;
+        });
+
+        for(var i = 0; i < this._messageQueue.length; i++) {
+
+            if (this._onMessage(this._messageQueue[i], false, flush)) {
+                this._messageQueue.splice(i, 1);
+                i--;
+            }
+
+        }
+
+    },
+
+    stripMessage: function(msg, tickless) {
+
+        delete msg.uid;
+        if (msg instanceof Array) {
+            msg.shift();
+            msg.tick = msg.shift();
+
+        } else {
+            delete msg.type;
+        }
+
+        if (tickless) {
+            delete msg.tick;
+        }
+
+        return msg;
+
     }
 
 });
