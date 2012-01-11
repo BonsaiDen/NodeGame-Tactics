@@ -349,9 +349,8 @@ var Client = Class(Twist, {
 
             this._clients.clear();
 
-            var list = msg.slice(2);
-            for(var i = 0, l = list.length; i < l; i++) {
-                this._clients.add(list[i]);
+            for(var i = 0, l = msg.length; i < l; i++) {
+                this._clients.add(msg[i]);
             }
 
             this.emit('game.client.list', this._clients);
@@ -390,9 +389,8 @@ var Client = Class(Twist, {
 
             this._players.clear();
 
-            var list = msg.slice(2);
-            for(var i = 0, l = list.length; i < l; i++) {
-                this._players.add(list[i]);
+            for(var i = 0, l = msg.length; i < l; i++) {
+                this._players.add(msg[i]);
             }
 
             this.emit('game.player.list', this._players);

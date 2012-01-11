@@ -182,7 +182,7 @@ var Game = Class({
     },
 
     onTick: function(t, tick) {
-        log(this, t, tick, this.getRandom());
+        log(this, t, this.getRandom());
     },
 
     onStop: function() {
@@ -225,16 +225,6 @@ var Game = Class({
             return cl.toMessage(client === cl);
         }));
 
-        // Do this BEFORE sending out the tick
-        if (this.isRunning()) {
-            client.send(network.Game.STARTED, tick, []);
-        }
-
-        // Sync all clients game ticker (so random is "synced" too)
-
-        // TODO round this to _syncRate?
-        this.broadcast(network.Game.TICK, tick % 250);
-
         // Send game settings down to the new client
         client.send(network.Game.SETTINGS, tick, {
 
@@ -245,6 +235,16 @@ var Game = Class({
             randomSeed: this._randomSeed
 
         });
+
+        // Do this BEFORE sending out the tick
+        if (this.isRunning()) {
+            client.send(network.Game.STARTED, tick, []);
+        }
+
+        // Sync all clients game ticker (so random is "synced" too)
+
+        // TODO round this to _syncRate?
+        this.broadcast(network.Game.TICK, tick % 250);
 
         client.send(network.Client.Game.JOINED, tick, {
             id: this.id
@@ -335,7 +335,7 @@ var Game = Class({
       * {String} Returns a string based represenation of the object.
       */
     toString: function() {
-        return 'Game #' + this.id;
+        return 'Game #' + this.id + ' @ ' + this._tickCount;
     },
 
     /**
@@ -367,11 +367,11 @@ var Game = Class({
                 msg.tick = this._tickCount;
             }
 
-            this._server.broadcast(type, msg, this._clientsi, exclude);
+            this._server.broadcast(type, msg, this._clients, exclude);
 
         // Send tick updates
         } else {
-            this._server.broadcast(null, msg, this._clientsi, exclude);
+            this._server.broadcast(null, msg, this._clients, exclude);
         }
 
     },

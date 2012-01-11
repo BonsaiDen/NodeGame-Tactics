@@ -34,7 +34,6 @@ var Twist = Class({
 
         this._currentFps = {};
         this._currentLoad = {};
-        this._renderInterpolation = false;
 
         this._reset();
         this.setFps(updateFps || Twist.defaultUpdateFps,
