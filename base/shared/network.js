@@ -91,7 +91,7 @@
 
     // Export
     if (typeof window === 'undefined') {
-        exports.network = network;
+        module.exports = network;
 
     } else {
         window.network = network;

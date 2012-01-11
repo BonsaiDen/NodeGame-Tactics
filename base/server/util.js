@@ -19,17 +19,43 @@
   * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
   * THE SOFTWARE.
   */
+module.exports = {
 
+    size: function(bytes) {
 
-// Startup --------------------------------------------------------------------
-var Game = require('./base/server/Game'),
-    Static = require('./base/server/Static'),
-    Server = require('./base/server/Server'),
-    network = require('./base/shared/network');
+        var t = 0;
+        while(bytes >= 1024 && t < 2) {
+            bytes = bytes / 1024;
+            t++;
+        }
 
-new Server({
-    port: network.PORT,
-    gameClass: Game,
-    httpHandler: Static(__filename, './', /^\/(server|base\/server)/)
-});
+        return Math.round(bytes * 100) / 100 + [' bytes', ' kib', ' mib'][t];
+
+    },
+
+    time: function(now, start) {
+
+        if (start !== undefined) {
+
+            var t = Math.round((now - start) / 1000),
+                m = Math.floor(t / 60),
+                s = t % 60;
+
+            return (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s + ' ';
+
+        } else {
+            return new Date(now).toString();
+        }
+
+    },
+
+    log: function(obj, items) {
+
+        var msg = Array.prototype.slice.call(arguments, 1);
+        msg.unshift('[' + obj + ']:');
+        console.log.apply(console, msg);
+
+    }
+
+};
 

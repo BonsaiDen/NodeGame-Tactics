@@ -91,7 +91,16 @@ var Client = Class(Twist, {
         this.draw(this.getTime(), this.getTick());
     },
 
-    // Network stuff
+    draw: function(t, tick) {
+
+    },
+
+    tick: function(t, tick) {
+        console.log(t, tick, this.getRandom());
+    },
+
+
+    // Network stuff ----------------------------------------------------------
     connect: function(host, port, name) {
 
         var ws = typeof WebSocket !== 'undefined' ? WebSocket : MozWebSocket;
@@ -186,7 +195,7 @@ var Client = Class(Twist, {
         return this._clients;
     },
 
-    getPlayer: function() {
+    getPlayers: function() {
         return this._players;
     },
 

@@ -22,15 +22,16 @@
 
 
 // Imports --------------------------------------------------------------------
-var paperboy = need('server.lib.paperboy'),
+var paperboy = require('./lib/paperboy'),
+    util = require('./util'),
     path = require('path');
 
 
 // Static file Server ---------------------------------------------------------
 // ----------------------------------------------------------------------------
-var Static = function(root) {
+var Static = function(base, root, ignore) {
 
-    var webroot = path.join(path.dirname(__filename), root),
+    var webroot = path.join(path.dirname(base), root),
         context = {
             toString: function() {
                 return 'Static ' + root ;
@@ -41,12 +42,24 @@ var Static = function(root) {
 
         var ip = req.connection.remoteAddress;
 
+        if (ignore && req.url.match(ignore)) {
+
+            res.writeHead(404, {
+                'Content-Type': 'text/plain'
+            });
+
+            res.end('Error 404: File not found');
+            util.log(context, 'ignored', req.url, ip);
+
+            return;
+        }
+
         paperboy.deliver(webroot, req, res)
             .addHeader('Expires', 3000)
             .addHeader('Cache-Control', 'max-age=300')
 
             .after(function(statCode) {
-                log(context, statCode, req.url, ip);
+                util.log(context, statCode, req.url, ip);
 
             }).error(function(statCode, msg) {
 
@@ -55,7 +68,7 @@ var Static = function(root) {
                 });
 
                 res.end('Error ' + statCode);
-                log(context, statCode, req.url, ip, msg);
+                util.log(context, statCode, req.url, ip, msg);
 
             }).otherwise(function(err) {
 
@@ -64,7 +77,7 @@ var Static = function(root) {
                 });
 
                 res.end('Error 404: File not found');
-                log(context, 404, req.url, ip);
+                util.log(context, 404, req.url, ip);
 
             });
 
@@ -72,5 +85,5 @@ var Static = function(root) {
 
 };
 
-exports.Static = Static;
+module.exports = Static;
 

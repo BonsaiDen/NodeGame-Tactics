@@ -661,5 +661,5 @@ function Server() {
 
 util.inherits(Server, EventEmitter);
 
-exports.WebSocket = Server;
+module.exports = Server;
 

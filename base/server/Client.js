@@ -22,7 +22,11 @@
 
 
 // Imports --------------------------------------------------------------------
-var HashList = need('shared.lib.HashList'),
+var HashList = require('../shared/lib/HashList'),
+    Class = require('../shared/lib/Class'),
+    BISON = require('../shared/lib/bison'),
+    network = require('../shared/network'),
+    util = require('./util'),
     crypto = require('crypto');
 
 
@@ -54,7 +58,7 @@ var Client = Class({
             this.updateHash();
         }
 
-        log(this, 'Connected');
+        util.log(this, 'Connected');
 
         // Send intitial network data and game list
         this.send(network.Client.CONNECT, 0, {});
@@ -81,7 +85,7 @@ var Client = Class({
         }
 
         this._conn.close();
-        log(this, 'Disconnected');
+        util.log(this, 'Disconnected');
 
     },
 
@@ -102,7 +106,7 @@ var Client = Class({
             this.leave();
         }
 
-        log(this, 'Joining game #' + gid)
+        util.log(this, 'Joining game #' + gid)
 
         // Did we find the requested game?
         var game = this._server.getGame(gid);
@@ -111,7 +115,7 @@ var Client = Class({
             this._game = game;
             this._game.getClients().add(this);
             this._game.onClientJoin(this, watching);
-            log(this, 'Joined game #' + gid + (watching ? ' (watching)' : ''));
+            util.log(this, 'Joined game #' + gid + (watching ? ' (watching)' : ''));
 
         } else {
             this.error(network.Error.INVALID_GAME, game);
@@ -124,9 +128,9 @@ var Client = Class({
       */
     leaveGame: function(disconnected) {
 
-        log(this, 'Leaving game #' + this._game.id)
+        util.log(this, 'Leaving game #' + this._game.id)
         this._game.onClientLeave(this, disconnected || false);
-        log(this, 'Left game #' + this._game.id);
+        util.log(this, 'Left game #' + this._game.id);
         this._game = null;
 
     },
@@ -148,7 +152,7 @@ var Client = Class({
             msg.tick = tick;
         }
 
-        return this._conn.send(bison.encode(msg));
+        return this._conn.send(BISON.encode(msg));
 
     },
 
@@ -163,7 +167,7 @@ var Client = Class({
 
     error: function(type, detail) {
 
-        this._conn.send(bison.encode({
+        this._conn.send(BISON.encode({
             type: network.ERROR,
             error: type,
             detail: detail
@@ -243,5 +247,5 @@ var Client = Class({
 
 });
 
-exports.Client = Client;
+module.exports = Client;
 

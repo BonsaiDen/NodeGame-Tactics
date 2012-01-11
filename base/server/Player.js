@@ -22,6 +22,9 @@
 
 
 // Imports --------------------------------------------------------------------
+var Class = require('../shared/lib/Class'),
+    network = require('../shared/network'),
+    util = require('./util');
 
 
 // Game Server Player ---------------------------------------------------------
@@ -67,7 +70,7 @@ var Player = Class({
 
         }, [this._client]);
 
-        log(this, reconnect ? 'Re-Connected' : 'Connected');
+        util.log(this, reconnect ? 'Re-Connected' : 'Connected');
 
     },
 
@@ -85,7 +88,7 @@ var Player = Class({
         this._client = null;
         this._disconnectTime = Date.now();
 
-        log(this, 'Disconnected');
+        util.log(this, 'Disconnected');
 
     },
 
@@ -120,7 +123,7 @@ var Player = Class({
         this._game.getPlayers().remove(this);
         this._game = null;
 
-        log(this, 'Left');
+        util.log(this, 'Left');
 
     },
 
@@ -186,5 +189,5 @@ var Player = Class({
 
 });
 
-exports.Player = Player;
+module.exports = Player;
 

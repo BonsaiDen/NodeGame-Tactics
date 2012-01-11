@@ -22,9 +22,13 @@
 
 
 // Imports --------------------------------------------------------------------
-var HashList = need('shared.lib.HashList'),
-    WebSocket = need('server.lib.WebSocket'),
-    Client = need('server.Client'),
+var BISON = require('../shared/lib/bison'),
+    Class = require('../shared/lib/Class'),
+    Client = require('./Client'),
+    HashList = require('../shared/lib/HashList'),
+    WebSocket = require('./lib/WebSocket'),
+    network = require('../shared/network'),
+    util = require('./util'),
     crypto = require('crypto');
 
 
@@ -56,7 +60,7 @@ var Server = Class({
         });
 
         this._socket.on('data', function(conn, data, binary) {
-            that.onMessage(conn, bison.decode(data));
+            that.onMessage(conn, BISON.decode(data));
         });
 
         this._socket.on('end', function(conn) {
@@ -75,9 +79,9 @@ var Server = Class({
 
         this._socket.listen(this._port);
 
-        log(this, 'Started on port', this._port,
-                  '| Max clients:', this._maxClients,
-                  '| Max games:', this._maxGames);
+        util.log(this, 'Started on port', this._port,
+                       '| Max clients:', this._maxClients,
+                       '| Max games:', this._maxGames);
 
     },
 
@@ -140,7 +144,7 @@ var Server = Class({
 
         if (this._clients.length >= this._maxClients) {
 
-            conn.send(bison.encode({
+            conn.send(BISON.encode({
                 type: network.ERROR,
                 code: network.Error.SERVER_FULL,
                 detail: this._maxClients
@@ -149,7 +153,7 @@ var Server = Class({
             conn.close();
 
         } else {
-            conn.send(bison.encode({
+            conn.send(BISON.encode({
                 type: network.Server.SETTINGS
             }));
         }
@@ -192,8 +196,8 @@ var Server = Class({
 
             } else {
 
-                log(this, 'Invalid connect: ' + valid);
-                conn.send(bison.encode({
+                util.log(this, 'Invalid connect: ' + valid);
+                conn.send(BISON.encode({
                     type: network.ERROR,
                     code: network.Error.INVALID_CONNECT,
                     detail: valid
@@ -233,17 +237,17 @@ var Server = Class({
         }
 
         if (!clients || clients.length === 0) {
-            this._bytesSend += this._socket.broadcast(bison.encode(msg));
+            this._bytesSend += this._socket.broadcast(BISON.encode(msg));
 
         } else if (exclude) {
             clients.eachNot(exclude, function(client) {
-                this._bytesSend += client.sendPlain(bison.encode(msg));
+                this._bytesSend += client.sendPlain(BISON.encode(msg));
 
             }, this);
 
         } else {
             clients.each(function(client) {
-                this._bytesSend += client.sendPlain(bison.encode(msg));
+                this._bytesSend += client.sendPlain(BISON.encode(msg));
 
             }, this);
         }
@@ -304,7 +308,7 @@ var Server = Class({
             client.send(network.Server.Game.LIST, 0, list);
 
         } else {
-            log(this, 'Game list to all');
+            util.log(this, 'Game list to all');
             this.broadcast(network.Server.Game.LIST, list);
         }
 
@@ -320,5 +324,5 @@ var Server = Class({
 
 });
 
-exports.Server = Server;
+module.exports = Server;
 

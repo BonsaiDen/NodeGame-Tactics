@@ -140,7 +140,7 @@
 
     // Exports
     if (typeof window === 'undefined') {
-        exports.Class = Class
+        module.exports = Class;
 
     } else {
         window['Class'] = Class;

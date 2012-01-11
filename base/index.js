@@ -19,17 +19,3 @@
   * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
   * THE SOFTWARE.
   */
-
-
-// Startup --------------------------------------------------------------------
-var Game = require('./base/server/Game'),
-    Static = require('./base/server/Static'),
-    Server = require('./base/server/Server'),
-    network = require('./base/shared/network');
-
-new Server({
-    port: network.PORT,
-    gameClass: Game,
-    httpHandler: Static(__filename, './', /^\/(server|base\/server)/)
-});
-

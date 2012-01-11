@@ -272,8 +272,6 @@ HashList.prototype = {
 
 // Export
 if (typeof window === 'undefined') {
-    exports.HashList = HashList;
-
+    module.exports = HashList;
 }
-
 
