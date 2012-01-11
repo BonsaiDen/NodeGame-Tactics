@@ -23,15 +23,16 @@
 
 // Imports --------------------------------------------------------------------
 var paperboy = require('./lib/paperboy'),
-    util = require('./util'),
+    util = require('./server/util'),
     path = require('path');
 
 
 // Static file Server ---------------------------------------------------------
 // ----------------------------------------------------------------------------
-var Static = function(base, root, ignore) {
+var Static = function(base, root, maps) {
 
-    var webroot = path.join(path.dirname(base), root),
+    var webbase = path.dirname(base),
+        webroot = path.join(path.dirname(base), root),
         context = {
             toString: function() {
                 return 'Static ' + root ;
@@ -40,21 +41,23 @@ var Static = function(base, root, ignore) {
 
     return function(req, res) {
 
-        var ip = req.connection.remoteAddress;
+        req.url = req.url.replace(/\.\./g, '');
 
-        if (ignore && req.url.match(ignore)) {
+        // Do some rewriting
+        var start = req.url.split('/')[1],
+            root = webroot;
 
-            res.writeHead(404, {
-                'Content-Type': 'text/plain'
-            });
+        if (start === 'client') {
+            req.url = '/base' + req.url;
+            root = webbase;
 
-            res.end('Error 404: File not found');
-            util.log(context, 'ignored', req.url, ip);
-
-            return;
+        } else if (start === 'shared') {
+            req.url = '/base' + req.url;
+            root = webbase;
         }
 
-        paperboy.deliver(webroot, req, res)
+        var ip = req.connection.remoteAddress;
+        paperboy.deliver(root, req, res)
             .addHeader('Expires', 3000)
             .addHeader('Cache-Control', 'max-age=300')
 

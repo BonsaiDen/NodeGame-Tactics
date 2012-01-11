@@ -23,13 +23,14 @@
 
 // Startup --------------------------------------------------------------------
 var Game = require('./base/server/Game'),
-    Static = require('./base/server/Static'),
     Server = require('./base/server/Server'),
+    Static = require('./base/Static'),
     network = require('./base/shared/network');
 
 new Server({
     port: network.PORT,
     gameClass: Game,
-    httpHandler: Static(__filename, './', /^\/(server|base\/server)/)
+    httpHandler: Static(__filename, './client')
+
 });
 
