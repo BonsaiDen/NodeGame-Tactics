@@ -109,6 +109,7 @@ var Client = Class({
         if (typeof game !== 'string' && game !== undefined) {
 
             this._game = game;
+            this._game.getClients().add(this);
             this._game.onClientJoin(this, watching);
             log(this, 'Joined game #' + gid + (watching ? ' (watching)' : ''));
 
@@ -171,7 +172,6 @@ var Client = Class({
     },
 
     // Handler ----------------------------------------------------------------
-
     onMessage: function(msg) {
 
         msg.type = msg.type !== undefined ? msg.type : msg[0];

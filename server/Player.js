@@ -76,9 +76,9 @@ var Player = Class({
     // ------------------------------------------------------------------------
 
     /**
-      * Handle for when a player's client gets disconnected from the server.
+      * Disconnect this player from the server and it's client.
       */
-    onDisconnect: function() {
+    disconnect: function() {
 
         this._hash = this._client.getHash();
         this._client.setPlayer(null);
@@ -90,22 +90,35 @@ var Player = Class({
     },
 
     /**
-      * Handler for when a player leaves a game.
+      * Make this player leave his current game.
       *
       * @timeout {Boolean} is `true` in case the player timed out and did not
       * leave the game on purpose.
       */
-    onLeave: function(timeout) {
+    leave: function(timeout) {
 
         if (this._client) {
+
+            // Notify the client itself that he left the game
+            this._client.send(network.Client.Game.LEFT, this._game.getTick(), {
+                id: this.id
+            });
+
             this._client.setPlayer(null);
+            this._game.getClients().remove(this._clients);
             this._client = null;
         }
 
+        // Notify other players about the leave
         this._game.broadcast(network.Game.Player.LEFT, {
             id: this.id
 
         }, [this._client]);
+
+
+        // Remove player from game
+        this._game.getPlayers().remove(this);
+        this._game = null;
 
         log(this, 'Left');
 

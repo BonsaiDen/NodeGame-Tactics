@@ -111,17 +111,12 @@ var Game = Class({
 
                     var idle = Date.now() - player._disconnectTime;
                     if (idle > this._timeout) {
-
-                        player.onLeave(true);
-                        this._players.remove(player);
-
+                        player.leave(true);
                     }
 
                 }
 
             }, this);
-
-            // Check whether to stop this game
 
             // Tick logic, this is synced with clients so that all
             // messages that leave the server will be processed at the same
@@ -161,7 +156,7 @@ var Game = Class({
         this.onStop();
 
         this._players.each(function(player) {
-            player.onLeave();
+            player.leave();
         });
 
         this._players.clear();
@@ -212,15 +207,13 @@ var Game = Class({
     // ------------------------------------------------------------------------
     onClientJoin: function(client, watching) {
 
-        var tick = this.getTick();
-
         log(this, 'Client joined', watching);
-        this._clients.add(client);
 
         // Notify others
         this.broadcast(network.Game.Client.JOINED, client.toMessage(), [client]);
 
         // Send list of clients to new one
+        var tick = this.getTick();
         client.send(network.Game.Client.LIST, tick, this._clients.map(function(cl) {
             return cl.toMessage(client === cl);
         }));
@@ -242,14 +235,11 @@ var Game = Class({
         }
 
         // Sync all clients game ticker (so random is "synced" too)
-
-        // TODO round this to _syncRate?
         this.broadcast(network.Game.TICK, tick % 250);
 
         client.send(network.Client.Game.JOINED, tick, {
             id: this.id
         });
-
 
         // Add player or re-connect client to one
         if (!watching) {
@@ -303,7 +293,7 @@ var Game = Class({
         // Mark the player as disconnected
         if (disconnect && client.getPlayer()) {
             log(this, 'Client disconnected');
-            client.getPlayer().onDisconnect();
+            client.getPlayer().disconnect();
 
         // Send out leave message to other clients
         // Leaving the actual game is done by the player
@@ -313,21 +303,16 @@ var Game = Class({
 
             // TODO break up relationship and use something else. A Map?
             if (client.getPlayer()) {
-                client.getPlayer().onLeave();
+                client.getPlayer().leave();
             }
 
         }
 
         this.broadcast(network.Game.Client.LEFT, client.toMessage(), [client]);
-        this._clients.remove(client);
 
         if (this._players.length === 0) {
             this.stop();
         }
-
-        client.send(network.Client.Game.LEFT, this.getTick(), {
-            id: this.id
-        });
 
     },
 
