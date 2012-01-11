@@ -101,7 +101,7 @@ var Game = Class({
 
             // Sync clients
             if (this._tickCount % this._syncRate === 0) {
-                this.broadcast(network.TICK_OFFSET);
+                this.broadcast(network.Game.TICK, this._tickCount % 250);
             }
 
             // Check for players who timed out
@@ -141,7 +141,7 @@ var Game = Class({
 
         }
 
-        if (this._players.length === 0 || this._tickCount > 1000) {
+        if (this._players.length === 0) {
             this.stop();
         }
 
@@ -225,8 +225,15 @@ var Game = Class({
             return cl.toMessage(client === cl);
         }));
 
+        // Do this BEFORE sending out the tick
+        if (this.isRunning()) {
+            client.send(network.Game.STARTED, tick, []);
+        }
+
         // Sync all clients game ticker (so random is "synced" too)
-        this.broadcast(network.TICK_OFFSET);
+
+        // TODO round this to _syncRate?
+        this.broadcast(network.Game.TICK, tick % 250);
 
         // Send game settings down to the new client
         client.send(network.Game.SETTINGS, tick, {
@@ -272,10 +279,6 @@ var Game = Class({
 
             }
 
-        }
-
-        if (this.isRunning()) {
-            client.send(network.Game.STARTED, tick, []);
         }
 
         client.send(network.Game.Player.LIST, tick, this._players.map(function(player) {
@@ -355,7 +358,7 @@ var Game = Class({
     broadcast: function(type, msg, exclude) {
 
         // Add the tick to the message
-        if (type < network.TICK_OFFSET) {
+        if (type !== network.Game.TICK) {
 
             if (msg instanceof Array) {
                 msg.unshift(this._tickCount);
@@ -364,17 +367,11 @@ var Game = Class({
                 msg.tick = this._tickCount;
             }
 
+            this._server.broadcast(type, msg, this._clientsi, exclude);
+
         // Send tick updates
         } else {
-            msg = [];
-            type += this._tickCount;
-        }
-
-        if (exclude) {
-            this._server.broadcast(type, msg, exclude, true);
-
-        } else {
-            this._server.broadcast(type, msg, this._clients);
+            this._server.broadcast(null, msg, this._clientsi, exclude);
         }
 
     },

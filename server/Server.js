@@ -221,24 +221,28 @@ var Server = Class({
     broadcast: function(type, msg, clients, exclude) {
 
         // Add the type to the message
-        if (msg instanceof Array) {
-            msg.unshift(type);
+        if (type !== null) {
 
-        } else {
-            msg.type = type;
+            if (msg instanceof Array) {
+                msg.unshift(type);
+
+            } else {
+                msg.type = type;
+            }
+
         }
 
         if (!clients || clients.length === 0) {
             this._bytesSend += this._socket.broadcast(bison.encode(msg));
 
         } else if (exclude) {
-            this._clients.eachNot(clients, function(client) {
+            clients.eachNot(exclude, function(client) {
                 this._bytesSend += client.sendPlain(bison.encode(msg));
 
             }, this);
 
         } else {
-            this._clients.eachIn(clients, function(client) {
+            clients.each(function(client) {
                 this._bytesSend += client.sendPlain(bison.encode(msg));
 
             }, this);

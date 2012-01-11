@@ -42,6 +42,8 @@ var Client = Class(Twist, {
         this._players = new HashList();
         this._clients = new HashList();
 
+        this._baseTick = 0; // base tick
+        this._serverTick = 0;
         this._lastTick = 0;
         this._syncRate = 0;
         this._logicRate = 0;
@@ -193,6 +195,24 @@ var Client = Class(Twist, {
     // ------------------------------------------------------------------------
     _onMessage: function(msg, initial, flush) {
 
+        // Ticks are just plain numbers in the range of 0-250
+        // these wrap around in order to keep the bandwidth for ticking as
+        // low as possible
+        if (typeof msg === 'number') {
+
+            var diff = msg - this._serverTick;
+
+            if (diff < 0 ) {
+                this._baseTick++;
+            }
+
+            this._serverTick = msg;
+            this._tickSyncTime = Date.now();
+            this._tickCount = this._baseTick * 250 + msg;
+            return false;
+
+        }
+
         // Get info from msg object
         var type = msg.type !== undefined ? msg.type : msg[0],
             tick = (msg.tick !== undefined ? msg.tick : msg[1]) || 0;
@@ -277,12 +297,23 @@ var Client = Class(Twist, {
 
 
         case network.Game.STARTED:
+
             if (!this.isRunning()) {
-                this._isPlaying = true;
+
+                // For wrapped tick updating
+                this._serverTick = 0;
+                this._baseTick = Math.floor(tick / 250);
+
+                this._tickSyncTime = Date.now();
+                this._tickCount = tick;
                 this._lastTick = this._tickCount;
+
+                this._isPlaying = true;
                 this.emit('game.start', strip(msg, true));
                 this.start();
+
             }
+
             break;
 
 
@@ -292,18 +323,7 @@ var Client = Class(Twist, {
 
 
         default:
-
-            if (type >= network.TICK_OFFSET) {
-                this._tickSyncTime = Date.now();
-                this._tickCount = msg[0] - network.TICK_OFFSET;
-                return true;
-
-            } else {
-                return false;
-
-            }
-
-            break;
+            return false;
 
         }
 

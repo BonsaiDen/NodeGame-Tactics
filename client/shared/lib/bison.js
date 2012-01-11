@@ -64,15 +64,13 @@
 
             }
 
-            // 17 - 19 (236 left = 118 per sign)
+            // 17 - 19 (236 left = 116 per sign)
             if (value < 118 && type === false) {
                 encoded += chr[15 + sign * 118 + value];
 
             // 7 - 10
             } else if (value < 65536) {
-                encoded += chr[7 + type + sign * 2]
-                           + chr[value >> 8 & 0xff]
-                           + chr[value & 0xff];
+                encoded += chr[7 + type + sign * 2] + chr[value >> 8 & 0xff] + chr[value & 0xff];
 
             // 11 - 14
             } else {
@@ -225,16 +223,12 @@
                 // 0-65535
                 if (type < 11) {
                     type -= 7;
-                    value = (string.charCodeAt(pos++) << 8)
-                            + string.charCodeAt(pos++);
+                    value = (string.charCodeAt(pos++) << 8) + string.charCodeAt(pos++);
 
                 // >= 65536
                 } else {
                     type -= 11;
-                    value = (string.charCodeAt(pos++) << 24)
-                            + (string.charCodeAt(pos++) << 16)
-                            + (string.charCodeAt(pos++) << 8)
-                            + string.charCodeAt(pos++);
+                    value = (string.charCodeAt(pos++) << 24) + (string.charCodeAt(pos++) << 16) + (string.charCodeAt(pos++) << 8) + string.charCodeAt(pos++);
                 }
 
                 // Sign
@@ -249,7 +243,7 @@
                     value /= Math.pow(10, e);
                 }
 
-            // Integers < 118
+            // Integers < 116
             } else {
                 type -= 15;
                 value = type > 117 ? (0 - type + 118) : type;
@@ -260,8 +254,11 @@
                 top[key] = value;
                 getKey = true;
 
-            } else {
+            } else if (top !== undefined) {
                 top.push(value);
+
+            } else {
+                return value;
             }
 
         }
