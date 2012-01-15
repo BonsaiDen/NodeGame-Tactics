@@ -49,7 +49,6 @@ function Connection(req, socket, upgradeHeader) {
 
         if (this.headers.version >= 8) {
 
-            console.log('prototcol version', this.headers.version);
             var accept = crypto.createHash('sha1');
             accept.update(headers.key
                           + '258EAFA5-E914-47DA-95CA-C5AB0DC85B11');

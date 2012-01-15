@@ -4,10 +4,13 @@ if (typeof window === 'undefined') {
 }
 
 /**
-  * {Emitter} Minimal event emitter interface.
+  * {Emitter} Minimal event emitter interface, with parents.
   */
-var Emitter = Class(function() {
+var Emitter = Class(function(group, parent) {
+
     this.__events = {};
+    this.__eventGroup = group;
+    this.__eventParent = parent;
 
 }, {
 
@@ -48,10 +51,23 @@ var Emitter = Class(function() {
       */
     emit: function(name) {
 
-        var events = this.__events[name],
+        var id = name;
+
+        //console.log(Array.prototype.slice.call(arguments))
+
+        // Go up to parent
+        if (this.__eventParent) {
+
+            arguments[0] = this.__eventGroup + '.' + id;
+            if (this.__eventParent.emit.apply(this.__eventParent, arguments)) {
+                return true;
+            }
+
+        }
+
+        var events = this.__events[id],
             stopped = false;
 
-        var id = name;
         if (events) {
 
             var call = Function.prototype.call;

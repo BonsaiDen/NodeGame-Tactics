@@ -201,9 +201,10 @@ var ServerGame = Class(function(server, id, maxPlayers, playerTimeout) {
 
         // Send list of clients to new one
         var tick = this.getTick();
-        client.send(network.Game.Client.LIST, tick, this._clients.map(function(cl) {
-            return cl.toMessage(client === cl);
-        }));
+        // Join creates the game locally
+        client.send(network.Client.Game.JOINED, tick, {
+            id: this.id
+        });
 
         // Send game settings down to the new client
         client.send(network.Game.SETTINGS, tick, {
@@ -216,6 +217,10 @@ var ServerGame = Class(function(server, id, maxPlayers, playerTimeout) {
 
         });
 
+        client.send(network.Game.Client.LIST, tick, this._clients.map(function(cl) {
+            return cl.toMessage(client === cl);
+        }));
+
         // Do this BEFORE sending out the tick
         if (this.isRunning()) {
             client.send(network.Game.STARTED, tick, []);
@@ -223,11 +228,6 @@ var ServerGame = Class(function(server, id, maxPlayers, playerTimeout) {
 
         // Sync all clients game ticker (so random is "synced" too)
         this.broadcast(network.Game.TICK, tick % 250);
-
-        client.send(network.Client.Game.JOINED, tick, {
-            id: this.id
-        });
-
 
         // Add player or re-connect client to one
         if (!watching) {
@@ -285,7 +285,7 @@ var ServerGame = Class(function(server, id, maxPlayers, playerTimeout) {
 
             this.emit('client.leave', client, true);
             this.emit('player.leave', client.getPlayer(), true);
-            client.getPlayer().disconnect();
+            client.getPlayer().setClient(null);
 
         // Send out leave message to other clients
         // Leaving the actual game is done by the player

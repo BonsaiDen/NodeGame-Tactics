@@ -19,13 +19,13 @@
   * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
   * THE SOFTWARE.
   */
-var Game = Class(function(updateFps, renderFps) {
+var Game = Class(function(client) {
 
-    ClientGame.init(this, updateFps, renderFps);
-    this.on('game.start', this.start);
-    this.on('game.draw', this.draw);
-    this.on('game.tick', this.tick);
-    this.on('game.end', this.end);
+    ClientGame.init(this, client);
+    this.on('start', this.start);
+    this.on('draw', this.draw);
+    this.on('tick', this.tick);
+    this.on('end', this.end);
 
 }, ClientGame, {
 
