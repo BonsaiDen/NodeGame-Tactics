@@ -26,8 +26,8 @@ var Class = require('./lib/Class'),
     ServerPlayer = require('./ServerPlayer'),
     HashList = require('./lib/HashList'),
     Emitter = require('./lib/Emitter'),
-    network = require('./network'),
-    util = require('./util');
+    Logger = require('./lib/Logger'),
+    network = require('./network');
 
 
 // Basic Server Game Class ----------------------------------------------------
@@ -35,6 +35,7 @@ var Class = require('./lib/Class'),
 var ServerGame = Class(function(server, id, maxPlayers, playerTimeout) {
 
     Emitter.init(this);
+    Logger.init(this, 'ServerGame');
 
     this.id = id;
     this._server = server;
@@ -55,7 +56,7 @@ var ServerGame = Class(function(server, id, maxPlayers, playerTimeout) {
     // Game Time
     this._startTime = -1;
     this._realTime = 0;
-    this._frameTime = Date.now();
+    this._frameTime = -1;
 
     // More logic stuff
     this._randomSeed = 500000 + Math.floor((Math.random() * 1000000));
@@ -67,11 +68,11 @@ var ServerGame = Class(function(server, id, maxPlayers, playerTimeout) {
 
     var that = this;
     setTimeout(function() {
-        that.start();
+        ServerGame.start(that);
 
     }, 2000);
 
-}, Emitter, {
+}, Emitter, Logger, {
 
     // Main Game loop ---------------------------------------------------------
     start: function() {
@@ -85,6 +86,7 @@ var ServerGame = Class(function(server, id, maxPlayers, playerTimeout) {
 
         }, this._tickRate);
 
+        this._frameTime = Date.now();
         this._tickCount = 1;
 
     },
@@ -312,7 +314,7 @@ var ServerGame = Class(function(server, id, maxPlayers, playerTimeout) {
       * {String} Returns a string based represenation of the object.
       */
     toString: function() {
-        return 'Game #' + this.id + ' @ ' + this._tickCount;
+        return '#' + this.id + ' @ ' + this._tickCount;
     },
 
     /**

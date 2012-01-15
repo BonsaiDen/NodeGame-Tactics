@@ -23,7 +23,6 @@
 
 // Imports --------------------------------------------------------------------
 var paperboy = require('./lib/paperboy'),
-    util = require('./util'),
     path = require('path');
 
 
@@ -32,12 +31,11 @@ var paperboy = require('./lib/paperboy'),
 var Static = function(base, root, maps) {
 
     var webbase = path.dirname(base),
-        webroot = path.join(path.dirname(base), root),
-        context = {
-            toString: function() {
-                return 'Static ' + root ;
-            }
-        };
+        webroot = path.join(path.dirname(base), root);
+
+    function log(ctx) {
+
+    }
 
     return function(req, res) {
 
@@ -53,7 +51,6 @@ var Static = function(base, root, maps) {
             });
 
             res.end('Error 404: File not found');
-            util.log(context, 404, req.url, ip);
             return;
 
         }
@@ -64,7 +61,7 @@ var Static = function(base, root, maps) {
             .addHeader('Cache-Control', 'max-age=300')
 
             .after(function(statCode) {
-                util.log(context, statCode, req.url, ip);
+                log(statCode, req.url, ip);
 
             }).error(function(statCode, msg) {
 
@@ -73,7 +70,7 @@ var Static = function(base, root, maps) {
                 });
 
                 res.end('Error ' + statCode);
-                util.log(context, statCode, req.url, ip, msg);
+                log(statCode, req.url, ip, msg);
 
             }).otherwise(function(err) {
 
@@ -82,7 +79,7 @@ var Static = function(base, root, maps) {
                 });
 
                 res.end('Error 404: File not found');
-                util.log(context, 404, req.url, ip);
+                log(404, req.url, ip);
 
             });
 

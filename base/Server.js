@@ -24,17 +24,19 @@
 // Imports --------------------------------------------------------------------
 var BISON = require('./lib/bison'),
     Class = require('./lib/Class'),
+    Logger = require('./lib/Logger'),
     ServerClient = require('./ServerClient'),
     HashList = require('./lib/HashList'),
     WebServer = require('./lib/WebSocket'),
     network = require('./network'),
-    util = require('./util'),
     crypto = require('crypto');
 
 
 // Game Server ----------------------------------------------------------------
 // ----------------------------------------------------------------------------
 var Server = Class(function(options) {
+
+    Logger.init(this, 'Server');
 
     // Clients
     this._clients = new HashList();
@@ -77,11 +79,11 @@ var Server = Class(function(options) {
 
     this._socket.listen(this._port);
 
-    util.log(this, 'Started on port', this._port,
-                   '| Max clients:', this._maxClients,
-                   '| Max games:', this._maxGames);
+    this.log('Started on port', this._port,
+                '| Max clients:', this._maxClients,
+                '| Max games:', this._maxGames);
 
-}, {
+}, Logger, {
 
     /**
       * Handle HTTP requests and authentication via Twitter
@@ -194,7 +196,7 @@ var Server = Class(function(options) {
 
             } else {
 
-                util.log(this, 'Invalid connect: ' + valid);
+                this.log('Invalid connect: ' + valid);
                 conn.send(BISON.encode({
                     type: network.ERROR,
                     code: network.Error.INVALID_CONNECT,
@@ -306,7 +308,7 @@ var Server = Class(function(options) {
             client.send(network.Server.Game.LIST, 0, list);
 
         } else {
-            util.log(this, 'Game list to all');
+            this.log('Game list to all');
             this.broadcast(network.Server.Game.LIST, list);
         }
 

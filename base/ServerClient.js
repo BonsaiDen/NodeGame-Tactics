@@ -25,14 +25,16 @@
 var HashList = require('./lib/HashList'),
     Class = require('./lib/Class'),
     BISON = require('./lib/bison'),
+    Logger = require('./lib/Logger'),
     network = require('./network'),
-    util = require('./util'),
     crypto = require('crypto');
 
 
 // Game Server Client ---------------------------------------------------------
 // ----------------------------------------------------------------------------
 var ServerClient = Class(function(server, conn, msg) {
+
+    Logger.init(this, 'ServerClient');
 
     this._server = server;
     this._conn = conn;
@@ -52,13 +54,13 @@ var ServerClient = Class(function(server, conn, msg) {
         this.updateHash();
     }
 
-    util.log(this, 'Connected');
+    this.log('Connected');
 
     // Send intitial network data and game list
     this.send(network.Client.CONNECT, 0, {});
     this._server.sendGameList(this);
 
-}, {
+}, Logger, {
 
     $id: 0,
 
@@ -81,7 +83,7 @@ var ServerClient = Class(function(server, conn, msg) {
         }
 
         this._conn.close();
-        util.log(this, 'Disconnected');
+        this.log('Disconnected');
 
     },
 
@@ -109,7 +111,7 @@ var ServerClient = Class(function(server, conn, msg) {
             this._game = game;
             this._game.getClients().add(this);
             this._game.addClient(this, watching);
-            util.log(this, 'Joined game #' + gid + (watching ? ' (watching)' : ''));
+            this.log('Joined game #' + gid + (watching ? ' (watching)' : ''));
 
         } else {
             this.error(network.Error.INVALID_GAME, game);
@@ -123,7 +125,7 @@ var ServerClient = Class(function(server, conn, msg) {
     leaveGame: function(disconnected) {
 
         this._game.removeClient(this, disconnected || false);
-        util.log(this, 'Left game #' + this._game.id);
+        this.log('Left game #' + this._game.id);
         this._game = null;
 
     },
@@ -242,7 +244,7 @@ var ServerClient = Class(function(server, conn, msg) {
       * {String} Returns a string based represenation of the object.
       */
     toString: function() {
-        return 'Client ' + this.id + ':' + this.uid + ' (' + this._name
+        return this.id + ':' + this.uid + ' (' + this._name
                 + ') | #' + (this._game ? this._game.id : '-');
     }
 

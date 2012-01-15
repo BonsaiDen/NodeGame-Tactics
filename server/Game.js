@@ -24,7 +24,7 @@
 var Class = require('../base/lib/Class'),
     ServerGame = require('../base/ServerGame'),
     network = require('../base/network'),
-    util = require('../base/util');
+    Logger = require('../base/lib/Logger');
 
 
 // Game Class -----------------------------------------------------------------
@@ -32,6 +32,7 @@ var Class = require('../base/lib/Class'),
 var Game = Class(function(server, id, maxPlayers, playerTimeout) {
 
     ServerGame.init(this, server, id, maxPlayers, playerTimeout);
+    Logger.init(this, 'Game');
 
     this.on('game.start', this.start);
     this.on('game.tick', this.tick);
@@ -39,33 +40,51 @@ var Game = Class(function(server, id, maxPlayers, playerTimeout) {
 
     this.on('client.message', this.clientMessage);
 
-}, {
+    this.log('Created');
+
+}, ServerGame, {
 
     start: function() {
-        ServerGame.start(this);
-        util.log(this, 'Started at', util.time(this._startTime), 'tick rate is '
-                      + this._tickRate + 'ms');
+        this.log('Started at', time(this._startTime), 'tick rate is '
+                    + this._tickRate + 'ms');
     },
 
     tick: function(t, tick) {
-        console.log(t, tick, this.getRandom());
+        this.log(t, tick, this.getRandom());
     },
 
     end: function() {
-        util.log(this, 'Ended at', util.time(Date.now()), ' was running for '
-                      + util.time(Date.now() - this._startTime)
-                      + 'ms (' + this._tickCount + ' ticks)');
+        this.log('Ended at', time(Date.now()), ' was running for '
+                    + time(Date.now() - this._startTime)
+                    + 'ms (' + this._tickCount + ' ticks)');
     },
 
     clientMessage: function(client, msg) {
-        util.log(this, 'Client message', msg);
+        this.log('Client message', msg);
     },
 
     toString: function() {
-        return 'Tactics #' + this.id + ' @ ' + this.getTick();
+        return '#' + this.id + ' @ ' + this.getTick();
     }
 
-}, ServerGame);
+});
+
+// Helper Functions -----------------------------------------------------------
+function time(now, start) {
+
+    if (start !== undefined) {
+
+        var t = Math.round((now - start) / 1000),
+            m = Math.floor(t / 60),
+            s = t % 60;
+
+        return (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s + ' ';
+
+    } else {
+        return new Date(now).toString();
+    }
+
+}
 
 module.exports = Game;
 

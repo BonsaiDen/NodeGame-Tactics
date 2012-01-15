@@ -24,7 +24,7 @@
 // Imports --------------------------------------------------------------------
 var Class = require('./lib/Class'),
     network = require('./network'),
-    util = require('./util');
+    Logger = require('./lib/Logger');
 
 /**
   * {ServerPlayer} Create a new player for the given @game {Game}.
@@ -36,11 +36,12 @@ var Class = require('./lib/Class'),
   */
 var ServerPlayer = Class(function(game, id, neutral) {
 
+    Logger.init(this, 'ServerPlayer');
     this.id = id;
     this._game = game;
     this._isNeutral = neutral || false;
 
-}, {
+}, Logger, {
 
     /**
       * Conencts the given @client {Client} with this player.
@@ -67,7 +68,7 @@ var ServerPlayer = Class(function(game, id, neutral) {
 
         }, [this._client]);
 
-        util.log(this, reconnect ? 'Re-Connected' : 'Connected');
+        this.log(reconnect ? 'Re-Connected' : 'Connected');
 
     },
 
@@ -85,7 +86,7 @@ var ServerPlayer = Class(function(game, id, neutral) {
         this._client = null;
         this._disconnectTime = Date.now();
 
-        util.log(this, 'Disconnected');
+        this.log('Disconnected');
 
     },
 
@@ -120,7 +121,7 @@ var ServerPlayer = Class(function(game, id, neutral) {
         this._game.getPlayers().remove(this);
         this._game = null;
 
-        util.log(this, 'Left');
+        this.log('Left');
 
     },
 
@@ -181,7 +182,7 @@ var ServerPlayer = Class(function(game, id, neutral) {
       * {String} Returns a string based represenation of the object.
       */
     toString: function() {
-        return 'ServerPlayer #' + this.id + ' | ' + this._game;
+        return '#' + this.id + ' | ' + this._game;
     }
 
 });
