@@ -31,71 +31,57 @@ var Class = require('./lib/Class'),
   *
   * @id {Integer} The ID this player should use for identification
   * @neutral {Boolean?} is special flag
-  *
-  * #constructor
   */
-var ServerPlayer = Class(function(game, id, neutral) {
+var ServerPlayer = Class(function(game, neutral) {
 
     Logger.init(this, 'ServerPlayer');
-    this.id = id;
+
+    this.id = +ServerPlayer.$id;
     this._game = game;
+    this._client = null;
+    this._clientHash = null;
     this._isNeutral = neutral || false;
 
 }, Logger, {
 
-    /**
-      * Conencts the given @client {Client} with this player.
-      *
-      * If @reconnect {Boolean} is `true` when a disconnected client re-joins
-      * a game in time.
-      */
-    connect: function(client, reconnect) {
+    $id: 0,
 
-        this._client = client;
-        this._client.setPlayer(this);
-        this.cid = this._client.uid;
+    setClient: function(client) {
 
-        this._hash = null;
-        this._disconnectTime = -1;
+        if (!client) {
+            this._clientHash = this._client.getHash();
+            this._client.setPlayer(null);
+            this._client = null;
+            this._clientDisconnectTime = Date.now();
+
+            this.log('Unbound from client');
+
+        } else {
+            this._client = client;
+            this._client.setPlayer(this);
+
+            this._clientHash = null;
+            this._clientDisconnectTime = -1;
+
+            this.log('Bound to ', client.toString());
+
+        }
+
+
+    },
+
+    join: function(reconnect) {
 
         var type = reconnect ? network.Game.Player.REJOINED
                              : network.Game.Player.JOINED;
 
-        this._game.broadcast(type, {
-            id: this.id,
-            cid: this.cid,
-            neutral: this._isNeutral
+        this._game.broadcast(type, this.toMessage(), [this._client]);
+        this._game.getPlayers().add(this);
 
-        }, [this._client]);
-
-        this.log(reconnect ? 'Re-Connected' : 'Connected');
+        this.log(reconnect ? 'Re-Joined game' : 'Joined Game');
 
     },
 
-
-    // Handler ----------------------------------------------------------------
-    // ------------------------------------------------------------------------
-
-    /**
-      * Disconnect this player from the server and it's client.
-      */
-    disconnect: function() {
-
-        this._hash = this._client.getHash();
-        this._client.setPlayer(null);
-        this._client = null;
-        this._disconnectTime = Date.now();
-
-        this.log('Disconnected');
-
-    },
-
-    /**
-      * Make this player leave his current game.
-      *
-      * @timeout {Boolean} is `true` in case the player timed out and did not
-      * leave the game on purpose.
-      */
     leave: function(timeout) {
 
         if (this._client) {
@@ -125,22 +111,15 @@ var ServerPlayer = Class(function(game, id, neutral) {
 
     },
 
-    /**
-      * Handles for when a player receives a custom message from its client.
-      */
-    onMessage: function(msg) {
-
-    },
-
 
     // Getter -----------------------------------------------------------------
     // ------------------------------------------------------------------------
-    getHash: function() {
-        return this._hash;
+    getClientHash: function() {
+        return this._clientHash;
     },
 
-    setHash: function(hash) {
-        this._hash = hash;
+    setClientHash: function(hash) {
+        this._clientHash = hash;
     },
 
     getClient: function() {
@@ -151,10 +130,18 @@ var ServerPlayer = Class(function(game, id, neutral) {
         return this._isNeutral;
     },
 
+    getDisconnectedTime: function() {
 
-    // Conversion -------------------------------------------------------------
-    // ------------------------------------------------------------------------
+        // If we're not neutral and don't have a client
+        // we'll time out soon
+        if (!this.isNeutral() && !this.getClient()) {
+            return Date.now() - this._clientDisconnectTime;
 
+        } else {
+            return 0;
+        }
+
+    },
 
     /**
       * {Object} Returns a network represenstation of the object.
@@ -166,7 +153,7 @@ var ServerPlayer = Class(function(game, id, neutral) {
 
         var msg = {
             id: this.id,
-            cid: this.cid,
+            cid: this._client ? this._client.uid : null,
             neutral: this._isNeutral
         };
 

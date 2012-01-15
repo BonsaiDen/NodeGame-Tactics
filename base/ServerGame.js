@@ -112,13 +112,8 @@ var ServerGame = Class(function(server, id, maxPlayers, playerTimeout) {
             // Check for players who timed out
             this._players.each(function(player) {
 
-                if (!player.isNeutral() && !player.getClient()) {
-
-                    var idle = Date.now() - player._disconnectTime;
-                    if (idle > this._playerTimeout) {
-                        player.leave(true);
-                    }
-
+                if (player.getDisconnectedTime() > this._playerTimeout) {
+                    player.leave(true);
                 }
 
             }, this);
@@ -241,11 +236,13 @@ var ServerGame = Class(function(server, id, maxPlayers, playerTimeout) {
             var that = this;
             function reconnect(player) {
 
-                if (!player.getClient() && player.getHash() === client.getHash()) {
+                if (!player.getClient()
+                    && player.getClientHash() === client.getHash()) {
 
                     that.emit('client.join', client, true);
 
-                    player.connect(client, true);
+                    player.setClient(client)
+                    player.join(true);
                     client.updateHash();
                     return true;
 
@@ -259,9 +256,11 @@ var ServerGame = Class(function(server, id, maxPlayers, playerTimeout) {
 
                     this.emit('client.join', client, false);
 
-                    var player = new this._playerClass(this, client.uid, false);
-                    this._players.add(player);
-                    player.connect(client);
+                    var player = new this._playerClass(this, false);
+
+                    player.setClient(client)
+                    player.join(false);
+
                     this.emit('player.join', client);
 
                 } else {
