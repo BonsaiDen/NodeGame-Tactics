@@ -20,5 +20,52 @@
   * THE SOFTWARE.
   */
 
+// Imports --------------------------------------------------------------------
+var Class = require('../base/lib/Class'),
+    BaseGame = require('../base/server/BaseGame'),
+    network = require('../base/network'),
+    util = require('../base/util');
 
+
+// Game Class -----------------------------------------------------------------
+// ----------------------------------------------------------------------------
+var Game = Class(function(server, id, maxPlayers, playerTimeout) {
+
+    BaseGame.init(this, server, id, maxPlayers, playerTimeout);
+
+    this.on('game.start', this.start);
+    this.on('game.tick', this.tick);
+    this.on('game.end', this.end);
+
+    this.on('client.message', this.clientMessage);
+
+}, {
+
+    start: function() {
+        BaseGame.prototype.start.call(this);
+        util.log(this, 'Started at', util.time(this._startTime), 'tick rate is '
+                      + this._tickRate + 'ms');
+    },
+
+    tick: function(t, tick) {
+        console.log(t, tick, this.getRandom());
+    },
+
+    end: function() {
+        util.log(this, 'Ended at', util.time(Date.now()), ' was running for '
+                      + util.time(Date.now() - this._startTime)
+                      + 'ms (' + this._tickCount + ' ticks)');
+    },
+
+    clientMessage: function(client, msg) {
+        util.log(this, 'Client message', msg);
+    },
+
+    toString: function() {
+        return 'Tactics #' + this.id + ' @ ' + this.getTick();
+    }
+
+}, BaseGame);
+
+module.exports = Game;
 

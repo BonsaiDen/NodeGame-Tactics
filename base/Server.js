@@ -22,68 +22,66 @@
 
 
 // Imports --------------------------------------------------------------------
-var BISON = require('../shared/lib/bison'),
-    Class = require('../shared/lib/Class'),
-    Client = require('./Client'),
-    HashList = require('../shared/lib/HashList'),
-    WebSocket = require('./lib/WebSocket'),
-    network = require('../shared/network'),
+var BISON = require('./lib/bison'),
+    Class = require('./lib/Class'),
+    Client = require('./server/Client'),
+    HashList = require('./lib/HashList'),
+    WebServer = require('./lib/WebSocket'),
+    network = require('.//network'),
     util = require('./util'),
     crypto = require('crypto');
 
 
 // Game Server ----------------------------------------------------------------
 // ----------------------------------------------------------------------------
-var Server = Class({
+var Server = Class(function(options) {
 
-    constructor: function(options) {
+    // Clients
+    this._clients = new HashList();
+    this._maxClients = options.maxClients || 60;
 
-        // Clients
-        this._clients = new HashList();
-        this._maxClients = options.maxClients || 60;
+    // Game stuff
+    this._games = new HashList();
+    this._maxGames = options.maxGames || 12;
+    this._gameClass = options.gameClass;
 
-        // Game stuff
-        this._games = new HashList();
-        this._maxGames = options.maxGames || 12;
-        this._gameClass = options.gameClass;
-
-        // Networking
-        this._socket = new WebSocket();
-        this._bytesSend = 0;
-        this._port = options.port || 4400;
+    // Networking
+    this._socket = new WebServer();
+    this._bytesSend = 0;
+    this._port = options.port || 4400;
 
 
-        // Web Sockets
-        var that = this;
-        this._socket.on('connection', function(conn) {
-            that.onConnection(conn);
-        });
+    // Web Sockets
+    var that = this;
+    this._socket.on('connection', function(conn) {
+        that.onConnection(conn);
+    });
 
-        this._socket.on('data', function(conn, data, binary) {
-            that.onMessage(conn, BISON.decode(data));
-        });
+    this._socket.on('data', function(conn, data, binary) {
+        that.onMessage(conn, BISON.decode(data));
+    });
 
-        this._socket.on('end', function(conn) {
-            that.onClose(conn);
-        });
+    this._socket.on('end', function(conn) {
+        that.onClose(conn);
+    });
 
-        // Authentication
-        this._authSessions = {};
+    // Authentication
+    this._authSessions = {};
 
 
-        // HTTP
-        this._httpHandler = options.httpHandler;
-        this._socket.on('request', function(req, res) {
-            that.onHTTPRequest(req, res);
-        });
+    // HTTP
+    this._httpHandler = options.httpHandler;
+    this._socket.on('request', function(req, res) {
+        that.onHTTPRequest(req, res);
+    });
 
-        this._socket.listen(this._port);
+    this._socket.listen(this._port);
 
-        util.log(this, 'Started on port', this._port,
-                       '| Max clients:', this._maxClients,
-                       '| Max games:', this._maxGames);
+    util.log(this, 'Started on port', this._port,
+                   '| Max clients:', this._maxClients,
+                   '| Max games:', this._maxGames);
 
-    },
+}, {
 
     /**
       * Handle HTTP requests and authentication via Twitter
@@ -173,17 +171,17 @@ var Server = Class({
 
             // Check basic message
             if (msg instanceof Array || msg.type !== network.Client.CONNECT) {
-                value = 'connect message required first';
+                valid = 'connect message required first';
 
             // Check game hash
             } else if (typeof msg.hash !== 'string'
-                       || msg.hash.trim().length != 32) {
+                       || msg.hash.trim().length !== 32) {
 
-                value = 'invalid client hash';
+                valid = 'invalid client hash';
 
             // Check name
             } else if (name.length < 2 || name.length > 16) {
-                value = 'Name length must be between 2 and 16 chars';
+                valid = 'Name length must be between 2 and 16 chars';
 
             } else {
                 valid = true;

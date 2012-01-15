@@ -22,55 +22,56 @@
 
 
 // Imports --------------------------------------------------------------------
-var Class = require('../shared/lib/Class'),
-    Player = require('./Player'),
-    HashList = require('../shared/lib/HashList'),
-    network = require('../shared/network');
-    util = require('./util');
+var Class = require('../lib/Class'),
+    BasePlayer = require('./BasePlayer'),
+    HashList = require('../lib/HashList'),
+    Emitter = require('../lib/Emitter'),
+    network = require('../network'),
+    util = require('../util');
 
 
-// Server Game Class ----------------------------------------------------------
+// Basic Server Game Class ----------------------------------------------------
 // ----------------------------------------------------------------------------
-var Game = Class({
+var BaseGame = Class(function(server, id, maxPlayers, playerTimeout) {
 
-    constructor: function(server, id, maxPlayers, timeout) {
+    Emitter.init(this);
 
-        this.id = id;
-        this._server = server;
+    this.id = id;
+    this._server = server;
 
-        // Players
-        this._maxPlayers = maxPlayers || 6;
-        this._players = new HashList(maxPlayers);
-        this._clients = new HashList();
-        this._timeout = timeout || 1000;
+    // Players
+    this._maxPlayers = maxPlayers || 6;
+    this._players = new HashList(maxPlayers);
+    this._clients = new HashList();
+    this._playerTimeout = playerTimeout || 1000;
+    this._playerClass = BasePlayer;
 
-        // Ticking
-        this._tickTime = 0;
-        this._tickRate = 66;
-        this._tickCount = 0;
-        this._tickInterval = null;
+    // Ticking
+    this._tickTime = 0;
+    this._tickRate = 66;
+    this._tickCount = 0;
+    this._tickInterval = null;
 
-        // Game Time
-        this._startTime = -1;
-        this._realTime = 0;
-        this._frameTime = Date.now();
+    // Game Time
+    this._startTime = -1;
+    this._realTime = 0;
+    this._frameTime = Date.now();
 
-        this._randomSeed = 500000 + Math.floor((Math.random() * 1000000));
-        this._randomState = 0;
-        this._logicRate = 10;
-        this._syncRate = 30;
+    // More logic stuff
+    this._randomSeed = 500000 + Math.floor((Math.random() * 1000000));
+    this._randomState = 0;
+    this._logicRate = 10;
+    this._syncRate = 30;
 
-        this._isRunning = false;
-        util.log(this, 'Created');
+    this._isRunning = false;
 
-        var that = this;
-        setTimeout(function() {
-            that.start();
+    var that = this;
+    setTimeout(function() {
+        that.start();
 
-        }, 2000);
+    }, 2000);
 
-    },
-
+}, Emitter, {
 
     // Main Game loop ---------------------------------------------------------
     start: function() {
@@ -80,7 +81,7 @@ var Game = Class({
         // Start game loop
         var that = this;
         this._tickInterval = setInterval(function() {
-            that.tick();
+            that._tick();
 
         }, this._tickRate);
 
@@ -88,7 +89,7 @@ var Game = Class({
 
     },
 
-    tick: function() {
+    _tick: function() {
 
         var now = Date.now();
 
@@ -98,7 +99,7 @@ var Game = Class({
             if (this._startTime === -1) {
                 this.broadcast(network.Game.STARTED, []);
                 this._startTime = Date.now();
-                this.onStart();
+                this.emit('game.start');
             }
 
             // Sync clients
@@ -112,7 +113,7 @@ var Game = Class({
                 if (!player.isNeutral() && !player.getClient()) {
 
                     var idle = Date.now() - player._disconnectTime;
-                    if (idle > this._timeout) {
+                    if (idle > this._playerTimeout) {
                         player.leave(true);
                     }
 
@@ -124,12 +125,7 @@ var Game = Class({
             // messages that leave the server will be processed at the same
             // tick as the events were processed here
             if (this._tickCount % this._logicRate === 0) {
-
-                if (this.onTick(this._tickTime, this._tickCount) === true) {
-                    this._stop();
-                    break;
-                }
-
+                this.emit('game.tick', this._tickTime, this._tickCount);
             }
 
             this._tickCount++;
@@ -155,7 +151,7 @@ var Game = Class({
         this._isRunning = false;
         clearInterval(this._tickInterval);
 
-        this.onStop();
+        this.emit('game.end');
 
         this._players.each(function(player) {
             player.leave();
@@ -166,28 +162,8 @@ var Game = Class({
 
         this.broadcast(network.Game.ENDED, []);
         this._server.removeGame(this);
-        util.log(this, 'Ended');
 
     },
-
-
-    // Game Logic -------------------------------------------------------------
-    // ------------------------------------------------------------------------
-    onStart: function() {
-        util.log(this, 'Started at', util.time(this._startTime), 'tick rate is '
-                      + this._tickRate + 'ms');
-    },
-
-    onTick: function(t, tick) {
-        util.log(this, t, this.getRandom());
-    },
-
-    onStop: function() {
-        util.log(this, 'Stopped at', util.time(Date.now()), ' was running for '
-                      + util.time(Date.now() - this._startTime)
-                      + 'ms (' + this._tickCount + ' ticks)');
-    },
-
 
     // Getters ----------------------------------------------------------------
     // ------------------------------------------------------------------------
@@ -221,9 +197,7 @@ var Game = Class({
 
     // Client -----------------------------------------------------------------
     // ------------------------------------------------------------------------
-    onClientJoin: function(client, watching) {
-
-        util.log(this, 'Client joined', watching);
+    addClient: function(client, watching) {
 
         // Notify others
         this.broadcast(network.Game.Client.JOINED, client.toMessage(), [client]);
@@ -257,16 +231,22 @@ var Game = Class({
             id: this.id
         });
 
+
         // Add player or re-connect client to one
         if (!watching) {
 
             // Figure out if we can/should reconnect the player
+            var that = this;
             function reconnect(player) {
 
                 if (!player.getClient() && player.getHash() === client.getHash()) {
+
+                    that.emit('client.join', client, true);
+
                     player.connect(client, true);
                     client.updateHash();
                     return true;
+
                 }
 
             }
@@ -275,11 +255,15 @@ var Game = Class({
 
                 if (!this._players.full()) {
 
-                    var player = new Player(this, client.uid, false);
+                    this.emit('client.join', client, false);
+
+                    var player = new this._playerClass(this, client.uid, false);
                     this._players.add(player);
                     player.connect(client);
+                    this.emit('player.join', client);
 
                 } else {
+                    // TODO emit event
                     client.error(network.Game.FULL, this._maxPlayers);
                 }
 
@@ -293,32 +277,24 @@ var Game = Class({
 
     },
 
-    onClientMessage: function(client, msg) {
-
-        util.log(this, 'Client message:', msg, this.getTick());
-
-        // TODO break up
-        if (client.getPlayer()) {
-            client.getPlayer().onMessage(msg);
-        }
-
-    },
-
-    onClientLeave: function(client, disconnect) {
+    removeClient: function(client, disconnect) {
 
         // Mark the player as disconnected
         if (disconnect && client.getPlayer()) {
-            util.log(this, 'Client disconnected');
+
+            this.emit('client.leave', client, true);
+            this.emit('player.leave', client.getPlayer(), true);
             client.getPlayer().disconnect();
 
         // Send out leave message to other clients
         // Leaving the actual game is done by the player
         } else {
 
-            util.log(this, 'Client left');
+            this.emit('client.leave', client, false);
 
             // TODO break up relationship and use something else. A Map?
             if (client.getPlayer()) {
+                this.emit('player.leave', client.getPlayer(), false);
                 client.getPlayer().leave();
             }
 
@@ -379,5 +355,5 @@ var Game = Class({
 
 });
 
-module.exports = Game;
+module.exports = BaseGame;
 

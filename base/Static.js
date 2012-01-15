@@ -23,7 +23,7 @@
 
 // Imports --------------------------------------------------------------------
 var paperboy = require('./lib/paperboy'),
-    util = require('./server/util'),
+    util = require('./util'),
     path = require('path');
 
 
@@ -47,13 +47,15 @@ var Static = function(base, root, maps) {
         var start = req.url.split('/')[1],
             root = webroot;
 
-        if (start === 'client') {
-            req.url = '/base' + req.url;
-            root = webbase;
+        if (start === 'server') {
+            res.writeHead(404, {
+                'Content-Type': 'text/plain'
+            });
 
-        } else if (start === 'shared') {
-            req.url = '/base' + req.url;
-            root = webbase;
+            res.end('Error 404: File not found');
+            util.log(context, 404, req.url, ip);
+            return;
+
         }
 
         var ip = req.connection.remoteAddress;
@@ -84,7 +86,7 @@ var Static = function(base, root, maps) {
 
             });
 
-    }
+    };
 
 };
 

@@ -22,49 +22,45 @@
 
 
 // Imports --------------------------------------------------------------------
-var HashList = require('../shared/lib/HashList'),
-    Class = require('../shared/lib/Class'),
-    BISON = require('../shared/lib/bison'),
-    network = require('../shared/network'),
-    util = require('./util'),
+var HashList = require('../lib/HashList'),
+    Class = require('../lib/Class'),
+    BISON = require('../lib/bison'),
+    network = require('../network'),
+    util = require('../util'),
     crypto = require('crypto');
 
 
 // Game Server Client ---------------------------------------------------------
 // ----------------------------------------------------------------------------
-var Client = Class({
+var Client = Class(function(server, conn, msg) {
 
-    $: {
-        id: 0
-    },
+    this._server = server;
+    this._conn = conn;
 
-    constructor: function(server, conn, msg) {
+    // IDs
+    this.id = this._conn.id;
+    this.uid = ++Client.$id;
 
-        this._server = server;
-        this._conn = conn;
+    // State
+    this._hash = msg.hash;
+    this._name = msg.name;
+    this._game = null;
+    this._player = null;
 
-        // IDs
-        this.id = this._conn.id;
-        this.uid = ++Client.id;
+    // Send intitial hash
+    if (this._hash === '--------------------------------') {
+        this.updateHash();
+    }
 
-        // State
-        this._hash = msg.hash;
-        this._name = msg.name;
-        this._game = null;
-        this._player = null;
+    util.log(this, 'Connected');
 
-        // Send intitial hash
-        if (this._hash === '--------------------------------') {
-            this.updateHash();
-        }
+    // Send intitial network data and game list
+    this.send(network.Client.CONNECT, 0, {});
+    this._server.sendGameList(this);
 
-        util.log(this, 'Connected');
+}, {
 
-        // Send intitial network data and game list
-        this.send(network.Client.CONNECT, 0, {});
-        this._server.sendGameList(this);
-
-    },
+    $id: 0,
 
     updateHash: function() {
 
@@ -106,15 +102,13 @@ var Client = Class({
             this.leave();
         }
 
-        util.log(this, 'Joining game #' + gid)
-
         // Did we find the requested game?
         var game = this._server.getGame(gid);
         if (typeof game !== 'string' && game !== undefined) {
 
             this._game = game;
             this._game.getClients().add(this);
-            this._game.onClientJoin(this, watching);
+            this._game.addClient(this, watching);
             util.log(this, 'Joined game #' + gid + (watching ? ' (watching)' : ''));
 
         } else {
@@ -128,8 +122,7 @@ var Client = Class({
       */
     leaveGame: function(disconnected) {
 
-        util.log(this, 'Leaving game #' + this._game.id)
-        this._game.onClientLeave(this, disconnected || false);
+        this._game.removeClient(this, disconnected || false);
         util.log(this, 'Left game #' + this._game.id);
         this._game = null;
 
@@ -182,7 +175,7 @@ var Client = Class({
 
         if (msg.type === network.Client.Game.JOIN) {
 
-            // TODO do not allow joining of running games canBeJoined()
+            // TODO do not allow joining of running games with canBeJoined()
             this.joinGame(msg.game || 0, msg.watch || false);
 
         } else if (msg.type === network.Client.Game.LEAVE) {
@@ -192,7 +185,15 @@ var Client = Class({
             }
 
         } else if (this._game) {
-            this._game.onClientMessage(this, msg);
+
+            if (this._game.emit('client.message', this, msg) !== true) {
+
+                if (this.getPlayer()) {
+                    this.getPlayer().emit('message', msg);
+                }
+
+            }
+
         }
 
     },

@@ -22,28 +22,25 @@
 
 
 // Imports --------------------------------------------------------------------
-var Class = require('../shared/lib/Class'),
-    network = require('../shared/network'),
-    util = require('./util');
+var Class = require('../lib/Class'),
+    network = require('..//network'),
+    util = require('../util');
 
+/**
+  * {BasePlayer} Create a new player for the given @game {Game}.
+  *
+  * @id {Integer} The ID this player should use for identification
+  * @neutral {Boolean?} is special flag
+  *
+  * #constructor
+  */
+var BasePlayer = Class(function(game, id, neutral) {
 
-// Game Server Player ---------------------------------------------------------
-// ----------------------------------------------------------------------------
-var Player = Class({
+    this.id = id;
+    this._game = game;
+    this._isNeutral = neutral || false;
 
-    /**
-      * {Player} Create a new player for the given @game {Game}.
-      *
-      * @id {Integer} The ID this player should use for identification
-      * @neutral {Boolean?} is special flag
-      *
-      * #constructor
-      */
-    constructor: function(game, id, neutral) {
-        this.id = id;
-        this._game = game;
-        this._isNeutral = neutral || false;
-    },
+}, {
 
     /**
       * Conencts the given @client {Client} with this player.
@@ -184,10 +181,10 @@ var Player = Class({
       * {String} Returns a string based represenation of the object.
       */
     toString: function() {
-        return 'Player #' + this.id + ' | ' + this._game;
+        return 'BasePlayer #' + this.id + ' | ' + this._game;
     }
 
 });
 
-module.exports = Player;
+module.exports = BasePlayer;
 

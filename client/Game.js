@@ -19,14 +19,37 @@
   * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
   * THE SOFTWARE.
   */
-var Game = Class(Client, {
+var Game = Class(function(updateFps, renderFps) {
 
-    constructor: function(updateFps, renderFps) {
-        Super(updateFps, renderFps);
-    },
+    BaseGame.init(this, updateFps, renderFps);
+    this.on('game.start', this.start);
+    this.on('game.draw', this.draw);
+    this.on('game.tick', this.tick);
+    this.on('game.end', this.end);
+
+}, BaseGame, {
+
+    events: [
+
+        'network.open',
+        'network.close',
+        'network.error',
+
+        'server.settings',
+        'server.game.list',
+
+        'game.settings',
+        'game.start',
+        'game.end',
+        'game.join',
+        'game.leave',
+        'game.client.list',
+        'game.player.list'
+
+    ],
 
     start: function() {
-        Super.start();
+        console.log('Started');
     },
 
     draw: function(t, tick) {
@@ -35,6 +58,10 @@ var Game = Class(Client, {
 
     tick: function(t, tick) {
         console.log(t, tick, this.getRandom());
+    },
+
+    end: function() {
+        console.log('Ended');
     }
 
 });

@@ -1,18 +1,15 @@
+// Imports
+if (typeof window === 'undefined') {
+    var Class = require('./Class');
+}
+
 /**
   * {Emitter} Minimal event emitter interface.
   */
-function Emitter(obj) {
+var Emitter = Class(function() {
+    this.__events = {};
 
-    if (obj) {
-        Emitter.call(obj);
-
-    } else {
-        this.__events = {};
-    }
-
-}
-
-Emitter.prototype = {
+}, {
 
     /**
       * {Function} Bind a @callback {Function} for any event with the @name {String}
@@ -43,7 +40,7 @@ Emitter.prototype = {
       * Like {Emitter#on} but will only fire once and then get removed.
       */
     once: function(name, callback, scope) {
-        return this.on(name, callback, scope, true)
+        return this.on(name, callback, scope, true);
     },
 
     /**
@@ -55,7 +52,6 @@ Emitter.prototype = {
             stopped = false;
 
         var id = name;
-        console.log(id, arguments)
         if (events) {
 
             var call = Function.prototype.call;
@@ -70,7 +66,7 @@ Emitter.prototype = {
 
                     event.fired = true;
 
-                    // Doing this trick we don't need to slice anything
+                    // Doing this trick so we don't need to slice anything
                     arguments[0] = event.scope || this;
                     stopped = call.apply(event.callback, arguments) || stopped;
 
@@ -132,9 +128,9 @@ Emitter.prototype = {
 
         } else {
 
-            for(var i in this.__events) {
-                if (this.__events.hasOwnProperty(i)) {
-                    this.unbind(i, func);
+            for(var e in this.__events) {
+                if (this.__events.hasOwnProperty(e)) {
+                    this.unbind(e, func);
                 }
             }
 
@@ -142,5 +138,10 @@ Emitter.prototype = {
 
     }
 
-};
+});
+
+// Exports
+if (typeof window === 'undefined') {
+    module.exports = Emitter;
+}
 

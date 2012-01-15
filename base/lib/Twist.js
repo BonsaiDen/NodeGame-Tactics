@@ -19,31 +19,30 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-var Twist = Class({
 
-    $: {
-        defaultUpdateFps: 30,
-        defaultRenderFps: 60
-    },
+/*global Class */
 
-    /**
-      * {Twist} A game loop with two distinct timers for decoupled
-      * @updateFps {Integer} and @renderFps {Integer} rates.
-      */
-    constructor: function(updateFps, renderFps) {
+/**
+  * {Twist} A game loop with two distinct timers for decoupled
+  * @updateFps {Integer} and @renderFps {Integer} rates.
+  */
+var Twist = Class(function(updateFps, renderFps) {
 
-        this._currentFps = {};
-        this._currentLoad = {};
+    this._currentFps = {};
+    this._currentLoad = {};
 
-        this._reset();
-        this.setFps(updateFps || Twist.defaultUpdateFps,
-                    renderFps || Twist.defaultRenderFps);
+    this._reset();
+    this.setFps(updateFps || Twist.$defaultUpdateFps,
+                renderFps || Twist.$defaultRenderFps);
 
-        this._frameCap = false;
-        this._intervalId = -1;
-        this._useAverage = true;
+    this._frameCap = false;
+    this._intervalId = -1;
+    this._useAverage = true;
 
-    },
+}, {
+
+    $defaultUpdateFps: 30,
+    $defaultRenderFps: 60,
 
     /**
       * {Boolean} Starts the game loop and returns `true` in case it wasn't
@@ -253,7 +252,7 @@ var Twist = Class({
         this._isRunning = false;
         this._pauseCount = 0;
 
-        this._updateCount = 0,
+        this._updateCount = 0;
         this._updateTime = 0;
         this._passedUpdateTime = 0;
         this._updateError = 0;

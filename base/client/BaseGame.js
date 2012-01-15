@@ -20,42 +20,40 @@
   * THE SOFTWARE.
   */
 
+/*global Emitter, Twist, HashList, BISON, network, Class, MozWebSocket*/
 
-// Client Networking Handling -------------------------------------------------
+
+// Basic client side game -----------------------------------------------------
 // ----------------------------------------------------------------------------
-var Client = Class(Twist, {
+var BaseGame = Class(function(updateFps, renderFps) {
 
-    prototype: [Emitter],
+    Twist.init(this, updateFps, renderFps);
+    Emitter.init(this);
 
-    constructor: function(updateFps, renderFps) {
+    this._isConnected = false;
+    this._isPlaying = false;
 
-        Super(updateFps, renderFps);
-        Emitter(this);
+    this._tickRate = 0;
+    this._tickCount = 0;
+    this._tickSyncTime = -1;
 
-        this._isConnected = false;
-        this._isPlaying = false;
+    this._players = new HashList();
+    this._clients = new HashList();
 
-        this._tickRate = 0;
-        this._tickCount = 0;
-        this._tickSyncTime = -1;
+    this._baseTick = 0; // base tick
+    this._serverTick = 0;
+    this._lastTick = 0;
+    this._syncRate = 0;
+    this._logicRate = 0;
 
-        this._players = new HashList();
-        this._clients = new HashList();
+    this._randomSeed = 0;
+    this._randomState = 0;
 
-        this._baseTick = 0; // base tick
-        this._serverTick = 0;
-        this._lastTick = 0;
-        this._syncRate = 0;
-        this._logicRate = 0;
+    this._messageQueue = [];
 
-        this._randomSeed = 0;
-        this._randomState = 0;
+    this._messageUid = 0;
 
-        this._messageQueue = [];
-
-        this._messageUid = 0;
-
-    },
+}, Twist, Emitter, {
 
     /**
       * Handle update of time and tick count and trigger game logic.
@@ -71,12 +69,12 @@ var Client = Class(Twist, {
 
         while(ct < diff) {
 
-            var tick = lt + ct;
+            tick = lt + ct;
             if (tick > this._lastTick && tick % this._logicRate === 0) {
 
                 this._processMessageQueue();
                 this._randomState = tick;
-                this.tick((tick * this._tickRate) - this._tickRate, tick);
+                this.emit('game.tick', (tick * this._tickRate) - this._tickRate, tick);
                 this._lastTick = tick;
 
             }
@@ -88,15 +86,12 @@ var Client = Class(Twist, {
     },
 
     render: function() {
-        this.draw(this.getTime(), this.getTick());
+        this.emit('game.draw', this.getTime(), this.getTick());
     },
 
-    draw: function(t, tick) {
-
-    },
-
-    tick: function(t, tick) {
-        console.log(t, tick, this.getRandom());
+    stop: function(msg) {
+        Twist.stop(this);
+        this.emit('game.end', msg);
     },
 
 
@@ -241,7 +236,7 @@ var Client = Class(Twist, {
                 }
 
             } else {
-                ret = this._handleMessage(type, tick, this.stripMessage(msg))
+                ret = this._handleMessage(type, tick, this._stripMessage(msg));
             }
 
         }
@@ -253,7 +248,7 @@ var Client = Class(Twist, {
     // Handle basic messages that don't need tick syncing
     _handleMessageBase: function(type, tick, msg) {
 
-        var strip = this.stripMessage;
+        var strip = this._stripMessage;
 
         switch(type) {
 
@@ -290,8 +285,7 @@ var Client = Class(Twist, {
 
         case network.Game.ENDED:
             this._processMessageQueue(true);
-            this.emit('game.end', strip(msg));
-            this.stop();
+            this.stop(strip(msg));
             break;
 
 
@@ -319,7 +313,7 @@ var Client = Class(Twist, {
 
                 this._isPlaying = true;
                 this.emit('game.start', strip(msg, true));
-                this.start();
+                Twist.start(this);
 
             }
 
@@ -358,8 +352,8 @@ var Client = Class(Twist, {
 
             this._clients.clear();
 
-            for(var i = 0, l = msg.length; i < l; i++) {
-                this._clients.add(msg[i]);
+            for(var c = 0, cl = msg.length; c < cl; c++) {
+                this._clients.add(msg[c]);
             }
 
             this.emit('game.client.list', this._clients);
@@ -373,13 +367,10 @@ var Client = Class(Twist, {
 
                 this._clients.add(msg);
 
-                if (type === network.Game.Client.JOINED) {
-                    this.emit('game.client.join', msg);
-                } else {
-                    this.emit('game.client.rejoin', msg);
-                }
-
+                var re = type === network.Game.Client.REJOINED;
+                this.emit('game.client.join', msg, re);
                 this.emit('game.client.list', this._clients);
+
             }
             break;
 
@@ -398,8 +389,8 @@ var Client = Class(Twist, {
 
             this._players.clear();
 
-            for(var i = 0, l = msg.length; i < l; i++) {
-                this._players.add(msg[i]);
+            for(var p = 0, pl = msg.length; p < pl; p++) {
+                this._players.add(msg[p]);
             }
 
             this.emit('game.player.list', this._players);
@@ -455,7 +446,7 @@ var Client = Class(Twist, {
 
     },
 
-    stripMessage: function(msg, tickless) {
+    _stripMessage: function(msg, tickless) {
 
         delete msg.uid;
         if (msg instanceof Array) {

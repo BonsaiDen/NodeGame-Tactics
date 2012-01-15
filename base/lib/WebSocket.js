@@ -49,12 +49,13 @@ function Connection(req, socket, upgradeHeader) {
 
         if (this.headers.version >= 8) {
 
+            console.log('prototcol version', this.headers.version);
             var accept = crypto.createHash('sha1');
             accept.update(headers.key
                           + '258EAFA5-E914-47DA-95CA-C5AB0DC85B11');
 
             this.response({
-                'Sec-WebSocket-Version': 8,
+                'Sec-WebSocket-Version': this.headers.version,
                 'Sec-WebSocket-Origin': headers.origin,
                 'Sec-WebSocket-Accept': accept.digest('base64')
             });
@@ -194,7 +195,7 @@ Connection.prototype.response = function(headers, body) {
         data += body;
     }
 
-    this.socket.write(data, 'binary');
+    this.socket.write(data, 'ascii');
 
 };
 
@@ -293,7 +294,7 @@ Connection.protocol[8] = function() {
             var hi = (buffer[bufferPos + 0] << 24)
                     + (buffer[bufferPos + 1] << 16)
                     + (buffer[bufferPos + 2] << 8)
-                    + buffer[bufferPos + 3];
+                    + buffer[bufferPos + 3],
 
                 low = (buffer[bufferPos + 4] << 24)
                     + (buffer[bufferPos + 5] << 16)
@@ -394,7 +395,8 @@ Connection.protocol[8] = function() {
 
     this.send = function(data, binary) {
 
-        var dataLength = Buffer.byteLength(data),
+        var enc = binary ? 'binary' : 'utf8',
+            dataLength = Buffer.byteLength(data, enc),
             dataBuffer,
             rawBytesSend = 2;
 
@@ -422,7 +424,6 @@ Connection.protocol[8] = function() {
 
         // 16 Bit
         } else if (dataLength > 125) {
-
             dataBuffer = new Buffer(4 + dataLength);
             dataBuffer[1] = 126;
             dataBuffer[2] = (dataLength >> 8) & 255;
@@ -442,7 +443,7 @@ Connection.protocol[8] = function() {
 
         if (that.socket.writable) {
 
-            dataBuffer.write(data, rawBytesSend);
+            dataBuffer.write(data, rawBytesSend, enc);
             this.socket.write(dataBuffer);
 
             that.rawBytesSend += rawBytesSend + dataLength;
@@ -541,7 +542,7 @@ Connection.protocol[76] = function() {
 
             try {
 
-                that.socket.write('\x00', 'binary');
+                that.socket.write('\x00', 'ascii');
 
                 if (data !== null) {
 
@@ -551,7 +552,7 @@ Connection.protocol[76] = function() {
                     that.bytesSend += dataLength;
                 }
 
-                that.socket.write('\xff', 'binary');
+                that.socket.write('\xff', 'ascii');
                 rawBytesSend += 2;
                 that.rawBytesSend += rawBytesSend;
 
@@ -596,6 +597,22 @@ function Server() {
 
     });
 
+    function connection(conn) {
+
+        connections[conn.id] = conn;
+        that.emit('connection', conn);
+
+        conn.on('data', function(data, binary) {
+            that.emit('data', conn, data, binary);
+        });
+
+        conn.on('end', function(remote) {
+            delete connections[conn.id];
+            that.emit('end', conn, remote);
+        });
+
+    }
+
     server.on('upgrade', function(req, socket, upgradeHeader) {
 
         var headers = req.headers;
@@ -625,22 +642,6 @@ function Server() {
         }
 
     });
-
-    function connection(conn) {
-
-        connections[conn.id] = conn;
-        that.emit('connection', conn);
-
-        conn.on('data', function(data, binary) {
-            that.emit('data', conn, data, binary);
-        });
-
-        conn.on('end', function(remote) {
-            delete connections[conn.id];
-            that.emit('end', conn, remote);
-        });
-
-    }
 
     this.broadcast = function(data, binary) {
 
