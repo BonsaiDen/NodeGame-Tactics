@@ -24,10 +24,10 @@
 // Imports --------------------------------------------------------------------
 var BISON = require('./lib/bison'),
     Class = require('./lib/Class'),
-    Client = require('./server/Client'),
+    ServerClient = require('./ServerClient'),
     HashList = require('./lib/HashList'),
     WebServer = require('./lib/WebSocket'),
-    network = require('.//network'),
+    network = require('./network'),
     util = require('./util'),
     crypto = require('crypto');
 
@@ -189,7 +189,7 @@ var Server = Class(function(options) {
 
             // Add client
             if (valid === true) {
-                var client = new Client(this, conn, msg);
+                var client = new ServerClient(this, conn, msg);
                 this._clients.add(client);
 
             } else {

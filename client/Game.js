@@ -21,13 +21,13 @@
   */
 var Game = Class(function(updateFps, renderFps) {
 
-    BaseGame.init(this, updateFps, renderFps);
+    ClientGame.init(this, updateFps, renderFps);
     this.on('game.start', this.start);
     this.on('game.draw', this.draw);
     this.on('game.tick', this.tick);
     this.on('game.end', this.end);
 
-}, BaseGame, {
+}, ClientGame, {
 
     events: [
 

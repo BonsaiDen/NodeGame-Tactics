@@ -25,7 +25,7 @@
 
 // Basic client side game -----------------------------------------------------
 // ----------------------------------------------------------------------------
-var BaseGame = Class(function(updateFps, renderFps) {
+var ClientGame = Class(function(updateFps, renderFps) {
 
     Twist.init(this, updateFps, renderFps);
     Emitter.init(this);

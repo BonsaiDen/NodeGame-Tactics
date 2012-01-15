@@ -22,7 +22,7 @@
 
 // Imports --------------------------------------------------------------------
 var Class = require('../base/lib/Class'),
-    BaseGame = require('../base/server/BaseGame'),
+    ServerGame = require('../base/ServerGame'),
     network = require('../base/network'),
     util = require('../base/util');
 
@@ -31,7 +31,7 @@ var Class = require('../base/lib/Class'),
 // ----------------------------------------------------------------------------
 var Game = Class(function(server, id, maxPlayers, playerTimeout) {
 
-    BaseGame.init(this, server, id, maxPlayers, playerTimeout);
+    ServerGame.init(this, server, id, maxPlayers, playerTimeout);
 
     this.on('game.start', this.start);
     this.on('game.tick', this.tick);
@@ -42,7 +42,7 @@ var Game = Class(function(server, id, maxPlayers, playerTimeout) {
 }, {
 
     start: function() {
-        BaseGame.prototype.start.call(this);
+        ServerGame.start(this);
         util.log(this, 'Started at', util.time(this._startTime), 'tick rate is '
                       + this._tickRate + 'ms');
     },
@@ -65,7 +65,7 @@ var Game = Class(function(server, id, maxPlayers, playerTimeout) {
         return 'Tactics #' + this.id + ' @ ' + this.getTick();
     }
 
-}, BaseGame);
+}, ServerGame);
 
 module.exports = Game;
 

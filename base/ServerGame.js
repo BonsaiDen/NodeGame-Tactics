@@ -22,17 +22,17 @@
 
 
 // Imports --------------------------------------------------------------------
-var Class = require('../lib/Class'),
-    BasePlayer = require('./BasePlayer'),
-    HashList = require('../lib/HashList'),
-    Emitter = require('../lib/Emitter'),
-    network = require('../network'),
-    util = require('../util');
+var Class = require('./lib/Class'),
+    ServerPlayer = require('./ServerPlayer'),
+    HashList = require('./lib/HashList'),
+    Emitter = require('./lib/Emitter'),
+    network = require('./network'),
+    util = require('./util');
 
 
 // Basic Server Game Class ----------------------------------------------------
 // ----------------------------------------------------------------------------
-var BaseGame = Class(function(server, id, maxPlayers, playerTimeout) {
+var ServerGame = Class(function(server, id, maxPlayers, playerTimeout) {
 
     Emitter.init(this);
 
@@ -44,7 +44,7 @@ var BaseGame = Class(function(server, id, maxPlayers, playerTimeout) {
     this._players = new HashList(maxPlayers);
     this._clients = new HashList();
     this._playerTimeout = playerTimeout || 1000;
-    this._playerClass = BasePlayer;
+    this._playerClass = ServerPlayer;
 
     // Ticking
     this._tickTime = 0;
@@ -355,5 +355,5 @@ var BaseGame = Class(function(server, id, maxPlayers, playerTimeout) {
 
 });
 
-module.exports = BaseGame;
+module.exports = ServerGame;
 

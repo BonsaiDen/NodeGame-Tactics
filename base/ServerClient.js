@@ -22,24 +22,24 @@
 
 
 // Imports --------------------------------------------------------------------
-var HashList = require('../lib/HashList'),
-    Class = require('../lib/Class'),
-    BISON = require('../lib/bison'),
-    network = require('../network'),
-    util = require('../util'),
+var HashList = require('./lib/HashList'),
+    Class = require('./lib/Class'),
+    BISON = require('./lib/bison'),
+    network = require('./network'),
+    util = require('./util'),
     crypto = require('crypto');
 
 
 // Game Server Client ---------------------------------------------------------
 // ----------------------------------------------------------------------------
-var Client = Class(function(server, conn, msg) {
+var ServerClient = Class(function(server, conn, msg) {
 
     this._server = server;
     this._conn = conn;
 
     // IDs
     this.id = this._conn.id;
-    this.uid = ++Client.$id;
+    this.uid = ++ServerClient.$id;
 
     // State
     this._hash = msg.hash;
@@ -248,5 +248,5 @@ var Client = Class(function(server, conn, msg) {
 
 });
 
-module.exports = Client;
+module.exports = ServerClient;
 
