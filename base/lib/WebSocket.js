@@ -151,6 +151,8 @@ function Connection(req, socket, upgradeHeader) {
 
 }
 
+Connection.MAX_MESSAGE_LENGTH = 4096;
+
 util.inherits(Connection, EventEmitter);
 
 Connection.prototype.request = function(req) {
@@ -365,7 +367,13 @@ Connection.protocol[8] = function() {
 
     this.read = function(data) {
 
-        var tmp = new Buffer(buffer.length + data.length);
+        var newLength = buffer.length + data.length;
+        if (newLength > Connection.MAX_MESSAGE_LENGTH) {
+            this.close();
+            return;
+        }
+
+        var tmp = new Buffer(newLength);
         buffer.copy(tmp);
         data.copy(tmp, buffer.length);
         buffer = tmp;
@@ -488,6 +496,11 @@ Connection.protocol[76] = function() {
         state = 0;
 
     this.read = function(data) {
+
+        if (data.length > Connection.MAX_MESSAGE_LENGTH) {
+            this.close();
+            return;
+        }
 
         for(var i = 0, l = data.length; i < l; i++) {
 

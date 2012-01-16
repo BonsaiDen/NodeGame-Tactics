@@ -24,7 +24,9 @@
 // Imports --------------------------------------------------------------------
 var Class = require('./lib/Class'),
     network = require('./network'),
-    Logger = require('./lib/Logger');
+    Emitter = require('./lib/Emitter'),
+    Logger = require('./lib/Logger'),
+    assert = require('./lib/assert');
 
 /**
   * {ServerPlayer} Create a new player for the given @game {Game}.
@@ -35,14 +37,15 @@ var Class = require('./lib/Class'),
 var ServerPlayer = Class(function(game, neutral) {
 
     Logger.init(this, 'ServerPlayer');
+    Emitter.init(this, 'player', game);
 
-    this.id = +ServerPlayer.$id;
+    this.id = ++ServerPlayer.$id;
     this._game = game;
     this._client = null;
     this._clientHash = null;
     this._isNeutral = neutral || false;
 
-}, Logger, {
+}, Emitter, Logger, {
 
     $id: 0,
 
@@ -52,8 +55,8 @@ var ServerPlayer = Class(function(game, neutral) {
                              : network.Game.Player.JOINED;
 
         this._game.broadcast(type, this.toMessage(), [this._client]);
-        this._game.getPlayers().add(this);
 
+        this.emit('join', reconnect);
         this.log(reconnect ? 'Re-Joined game' : 'Joined Game');
 
     },
@@ -80,10 +83,10 @@ var ServerPlayer = Class(function(game, neutral) {
 
 
         // Remove player from game
-        this._game.getPlayers().remove(this);
+        assert(this._game.getPlayers().remove(this), 'player not in list');
         this._game = null;
 
-        this.log('Left');
+        this.emit('leave');
 
     },
 

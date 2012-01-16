@@ -32,7 +32,7 @@ var Game = Class(function(client) {
     });
 
     this.on('player.join', function(player, re) {
-        console.log('player ', player, 'joined game', re);
+        console.log('player ', player, 'joined', re);
     });
 
     this.on('player.leave', function(player) {

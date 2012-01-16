@@ -26,6 +26,7 @@ var HashList = require('./lib/HashList'),
     Class = require('./lib/Class'),
     BISON = require('./lib/bison'),
     Logger = require('./lib/Logger'),
+    assert = require('./lib/assert'),
     network = require('./network'),
     crypto = require('crypto');
 
@@ -101,16 +102,17 @@ var ServerClient = Class(function(server, conn, msg) {
 
         // In case we're in another game, leave that one first
         } else if (this._game) {
-            this.leave();
+            this.leaveGame();
         }
 
         // Did we find the requested game?
         var game = this._server.getGame(gid);
         if (typeof game !== 'string' && game !== undefined) {
 
+            assert(this._game === null);
             this._game = game;
-            this._game.getClients().add(this);
             this._game.addClient(this, watching);
+
             this.log('Joined game #' + gid + (watching ? ' (watching)' : ''));
 
         } else {
@@ -122,13 +124,10 @@ var ServerClient = Class(function(server, conn, msg) {
     /**
       * Makes the client leave his current game.
       */
-    leaveGame: function(disconnected) {
-
-        this._game.getClients().remove(this);
-        this._game.removeClient(this, disconnected || false);
+    leaveGame: function(remote) {
+        this._game.removeClient(this, remote || false);
         this.log('Left game #' + this._game.id);
         this._game = null;
-
     },
 
     /**
@@ -213,7 +212,16 @@ var ServerClient = Class(function(server, conn, msg) {
     },
 
     setPlayer: function(player) {
+
+        if (player !== null) {
+            assert(this._player === null);
+
+        } else {
+            assert(this._player !== null);
+        }
+
         this._player = player;
+
     },
 
     /**

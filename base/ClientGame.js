@@ -20,7 +20,7 @@
   * THE SOFTWARE.
   */
 
-/*global Emitter, Class, HashList, ClientPlayer */
+/*global Emitter, Class, HashList, ClientPlayer, assert */
 
 
 // Client Game ----------------------------------------------------------------
@@ -61,37 +61,34 @@ var ClientGame = Class(function(client, playerClass) {
     // Setters ----------------------------------------------------------------
     addClient: function(id, name) {
 
-        if (!this._clients.has(id)) {
+        var client = {
+            id: id,
+            name: name,
+            player: null
+        };
 
-            var client = {
-                id: id,
-                name: name
-            };
-
-            this._clients.add(client);
-            this.emit('client.join', client);
-
-        }
+        assert(this._clients.add(client));
+        this.emit('client.join', client);
 
     },
 
     removeClient: function(id) {
 
-        if (this._clients.has(id)) {
-            var client = this._clients.get(id);
-            this._clients.remove(client);
-            this.emit('client.leave', client);
+        var client = this._clients.get(id);
+        assert(this._clients.remove(client));
+
+        if (client.player) {
+            client.player.setClient(null);
         }
+
+        this.emit('client.leave', client);
 
     },
 
     addPlayer: function(id, clientId, isNeutral, isLocal, reconnect) {
 
-        if (!this._players.has(id)) {
-            this._players.add(new this._playerClass(this, id, isNeutral, isLocal));
-        }
-
-        var player = this._players.get(id);
+        var player = new this._playerClass(this, id, isNeutral, isLocal);
+        assert(this._players.add(player));
         player.setClient(this._clients.get(clientId));
         player.join(reconnect);
 
@@ -99,14 +96,10 @@ var ClientGame = Class(function(client, playerClass) {
 
     removePlayer: function(id) {
 
-        if (this._players.has(id)) {
-
-            var player = this._players.get(id);
-            this._players.remove(player);
-            player.setClient(null);
-            player.leave();
-
-        }
+        var player = this._players.get(id);
+        assert(this._players.remove(player));
+        player.setClient(null);
+        player.leave();
 
     },
 
@@ -124,8 +117,16 @@ var ClientGame = Class(function(client, playerClass) {
         return this._client.getTick();
     },
 
+    getClient: function(id) {
+        return this._clients.get(id);
+    },
+
     getClients: function() {
         return this._client.getClients();
+    },
+
+    getPlayer: function(id) {
+        return this._players.get(id);
     },
 
     getPlayers: function() {

@@ -27,6 +27,7 @@ var Class = require('./lib/Class'),
     HashList = require('./lib/HashList'),
     Emitter = require('./lib/Emitter'),
     Logger = require('./lib/Logger'),
+    assert = require('./lib/assert'),
     network = require('./network');
 
 
@@ -196,6 +197,11 @@ var ServerGame = Class(function(server, id, maxPlayers, playerTimeout) {
     // ------------------------------------------------------------------------
     addClient: function(client, watching) {
 
+        // Add client to list
+        assert(!this._clients.has(client), 'client already in list');
+        this._clients.add(client);
+        this.emit('client.join', client);
+
         // Send list of clients to new one
         var tick = this.getTick();
 
@@ -244,9 +250,7 @@ var ServerGame = Class(function(server, id, maxPlayers, playerTimeout) {
                 if (!player.getClient()
                     && player.getClientHash() === client.getHash()) {
 
-                    that.emit('client.join', client, true);
-
-                    player.setClient(client)
+                    player.setClient(client);
                     player.join(true);
                     client.updateHash();
                     return true;
@@ -259,17 +263,14 @@ var ServerGame = Class(function(server, id, maxPlayers, playerTimeout) {
 
                 if (!this._players.full()) {
 
-                    this.emit('client.join', client, false);
-
+                    // Create new player
                     var player = new this._playerClass(this, false);
+                    assert(this._players.add(player), 'player already in list');
 
-                    player.setClient(client)
+                    player.setClient(client);
                     player.join(false);
 
-                    this.emit('player.join', client);
-
                 } else {
-                    // TODO emit event
                     client.error(network.Game.FULL, this._maxPlayers);
                 }
 
@@ -285,26 +286,18 @@ var ServerGame = Class(function(server, id, maxPlayers, playerTimeout) {
 
     removeClient: function(client, disconnect) {
 
+        // Remove client from list
+        assert(this._clients.remove(client), 'client not in list');
+        this.emit('client.leave', client);
+
         // Mark the player as disconnected
         if (disconnect && client.getPlayer()) {
-
-            // TODO emit this from player.leave
-            this.emit('client.leave', client, true);
-            this.emit('player.leave', client.getPlayer(), true);
             client.getPlayer().setClient(null);
 
         // Send out leave message to other clients
         // Leaving the actual game is done by the player
-        } else {
-
-            this.emit('client.leave', client, false);
-
-            if (client.getPlayer()) {
-                // TODO emit this from player.leave
-                this.emit('player.leave', client.getPlayer(), false);
-                client.getPlayer().leave();
-            }
-
+        } else if (client.getPlayer()) {
+            client.getPlayer().leave();
         }
 
         this.broadcast(network.Game.Client.LEFT, client.toMessage(), [client]);

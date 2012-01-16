@@ -20,52 +20,26 @@
   * THE SOFTWARE.
   */
 
-
-// Basic client side player ---------------------------------------------------
+// A very simple assert function for stuff that should never fail -------------
 // ----------------------------------------------------------------------------
-var ClientPlayer = Class(function(game, id, isNeutral, isLocal) {
+function assert(ok, message) {
 
-    this.id = id;
-    this._game = game;
-    this._isNeutral = isNeutral;
-    this._isLocal = isLocal;
-    this._client = null;
+    if (!ok) {
 
-    Emitter.init(this, 'player', game);
-
-}, Emitter, {
-
-    join: function(reconnect) {
-        this.emit('join', reconnect);
-    },
-
-    leave: function() {
-        this.emit('leave');
-    },
-
-    // Getter / Setter --------------------------------------------------------
-    setClient: function(client) {
-
-        this._client = client;
-
-        if (client !== null) {
-            assert(this._client.player === null);
-            this._client.player = this;
+        function Assertion() {
+            this.name = 'Assertion';
+            this.message = message || 'Failed';
         }
 
-    },
+        Assertion.prototype = new Error();
+        Assertion.prototype.constructor = Assertion;
 
-    getClient: function() {
-        return this._client;
-    },
+        throw new Assertion();
 
-    isNeutral: function() {
-        return this._isNeutral;
-    },
-
-    isLocal: function() {
-        return this._isLocal;
     }
 
-});
+}
 
+if (typeof window === 'undefined') {
+    module.exports = assert;
+}

@@ -20,7 +20,9 @@
   * THE SOFTWARE.
   */
 
-/*global Emitter, Twist, HashList, BISON, network, Class, MozWebSocket, ClientGame */
+/*global Emitter, Twist, HashList, BISON,
+         network, Class, MozWebSocket, ClientGame, assert
+*/
 
 
 // Client ---------------------------------------------------------------------
@@ -90,9 +92,11 @@ var Client = Class(function(updateFps, renderFps, gameClass) {
     end: function(msg) {
 
         if (this.isRunning()) {
+
             Twist.stop(this);
             this._game.end(msg);
             this._game = null;
+
         }
 
     },
@@ -257,24 +261,20 @@ var Client = Class(function(updateFps, renderFps, gameClass) {
 
             break;
 
-
         case network.Client.CONNECT:
             this._isConnected = true;
             this.emit('connect');
             break;
 
-
         case network.Server.SETTINGS:
             this.emit('settings', strip(msg, true));
             break;
 
-
         case network.Client.Game.JOINED:
-            console.log('new game');
+            assert(this._game === null);
             this._game = new this._gameClass(this);
             this._game.emit('join', strip(msg));
             break;
-
 
         case network.Game.SETTINGS:
             this._tickRate = msg.tickRate;
@@ -284,42 +284,34 @@ var Client = Class(function(updateFps, renderFps, gameClass) {
             this._game.emit('settings', strip(msg, true));
             break;
 
-
         case network.Server.Game.LIST:
-            this.emit('game.list', strip(msg, true));
+            this.emit('gameList', strip(msg, true));
             break;
-
 
         case network.Game.STARTED:
 
-            if (!this.isRunning()) {
+            assert(this.isRunning() === false);
 
-                // For wrapped tick updating
-                this._serverTick = 0;
-                this._baseTick = Math.floor(tick / 250);
+            this._serverTick = 0;
+            this._baseTick = Math.floor(tick / 250);
 
-                this._tickSyncTime = Date.now();
-                this._tickCount = tick;
-                this._lastTick = this._tickCount;
+            this._tickSyncTime = Date.now();
+            this._tickCount = tick;
+            this._lastTick = this._tickCount;
 
-                this._game.start(strip(msg, true));
-                Twist.start(this);
-
-            }
+            this._game.start(strip(msg, true));
+            Twist.start(this);
 
             break;
-
 
         case network.Game.ENDED:
             this._processMessageQueue(true);
             this.end(strip(msg));
             break;
 
-
         case network.ERROR:
             this.emit('error', strip(msg, true));
             break;
-
 
         default:
             return false;
@@ -370,7 +362,14 @@ var Client = Class(function(updateFps, renderFps, gameClass) {
             break;
 
         case network.Game.Player.REJOINED:
-            this._game.addPlayer(msg.id, msg.cid, msg.neutral, msg.local, true);
+
+            var player = this._game.getPlayer(msg.id);
+            assert(player);
+
+            player.setClient(this._game.getClient(msg.cid));
+            player.join(true);
+
+            //this._game.addPlayer(msg.id, msg.cid, msg.neutral, msg.local, true);
             break;
 
         case network.Game.Player.LEFT:
@@ -408,6 +407,7 @@ var Client = Class(function(updateFps, renderFps, gameClass) {
     _stripMessage: function(msg, tickless) {
 
         delete msg.uid;
+
         if (msg instanceof Array) {
             msg.shift();
             msg.tick = msg.shift();
