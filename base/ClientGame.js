@@ -59,12 +59,13 @@ var ClientGame = Class(function(client, playerClass) {
 
 
     // Setters ----------------------------------------------------------------
-    addClient: function(id, name) {
+    addClient: function(id, name, local) {
 
         var client = {
             id: id,
             name: name,
-            player: null
+            player: null,
+            local: local
         };
 
         assert(this._clients.add(client));

@@ -20,6 +20,8 @@
   * THE SOFTWARE.
   */
 
+/*global Emitter, Class, assert */
+
 
 // Basic client side player ---------------------------------------------------
 // ----------------------------------------------------------------------------
@@ -65,6 +67,10 @@ var ClientPlayer = Class(function(game, id, isNeutral, isLocal) {
 
     isLocal: function() {
         return this._isLocal;
+    },
+
+    isRemote: function() {
+        return !this._isLocal;
     }
 
 });

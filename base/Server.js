@@ -295,9 +295,6 @@ var Server = Class(function(options) {
         return this._games;
     },
 
-    /**
-      * TODO: Add Description
-      */
     sendGameList: function(client) {
 
         var list = this._games.map(function(game) {

@@ -336,12 +336,12 @@ var Client = Class(function(updateFps, renderFps, gameClass) {
         // Clients ------------------------------------------------------------
         case network.Game.Client.LIST:
             for(var c = 0, cl = msg.length; c < cl; c++) {
-                this._game.addClient(msg[c].id, msg[c].name);
+                this._game.addClient(msg[c].id, msg[c].name, msg[c].local);
             }
             break;
 
         case network.Game.Client.JOINED:
-            this._game.addClient(msg.id, msg.name);
+            this._game.addClient(msg.id, msg.name, msg.local);
             break;
 
         case network.Game.Client.LEFT:
