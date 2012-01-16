@@ -20,18 +20,98 @@
   * THE SOFTWARE.
   */
 
-/*global Emitter, Class */
+/*global Emitter, Class, HashList, ClientPlayer */
 
 
 // Client Game ----------------------------------------------------------------
 // ----------------------------------------------------------------------------
-var ClientGame = Class(function(client) {
+var ClientGame = Class(function(client, playerClass) {
 
     Emitter.init(this, 'game', client);
+
     this._client = client;
+    this._playerClass = playerClass || ClientPlayer;
+
+    this._players = new HashList();
+    this._clients = new HashList();
 
 }, Emitter, {
 
+    // Basic setup / teardown methods -----------------------------------------
+    // ------------------------------------------------------------------------
+    start: function(msg) {
+        this.emit('start', msg);
+    },
+
+    tick: function(t, tick) {
+
+    },
+
+    render: function(t, tick) {
+
+    },
+
+    end: function(msg) {
+        this.emit('end', msg);
+        this._players.clear();
+        this._clients.clear();
+    },
+
+
+    // Setters ----------------------------------------------------------------
+    addClient: function(id, name) {
+
+        if (!this._clients.has(id)) {
+
+            var client = {
+                id: id,
+                name: name
+            };
+
+            this._clients.add(client);
+            this.emit('client.join', client);
+
+        }
+
+    },
+
+    removeClient: function(id) {
+
+        if (this._clients.has(id)) {
+            var client = this._clients.get(id);
+            this._clients.remove(client);
+            this.emit('client.leave', client);
+        }
+
+    },
+
+    addPlayer: function(id, clientId, isNeutral, isLocal, reconnect) {
+
+        if (!this._players.has(id)) {
+            this._players.add(new this._playerClass(this, id, isNeutral, isLocal));
+        }
+
+        var player = this._players.get(id);
+        player.setClient(this._clients.get(clientId));
+        player.join(reconnect);
+
+    },
+
+    removePlayer: function(id) {
+
+        if (this._players.has(id)) {
+
+            var player = this._players.get(id);
+            this._players.remove(player);
+            player.setClient(null);
+            player.leave();
+
+        }
+
+    },
+
+
+    // Getters ----------------------------------------------------------------
     getRandom: function() {
         return this._client.getRandom();
     },

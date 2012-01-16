@@ -23,7 +23,42 @@
 
 // Basic client side player ---------------------------------------------------
 // ----------------------------------------------------------------------------
-var ClientPlayer = Class(function() {
+var ClientPlayer = Class(function(game, id, isNeutral, isLocal) {
+
+    this.id = id;
+    this._game = game;
+    this._isNeutral = isNeutral;
+    this._isLocal = isLocal;
+    this._client = null;
+
+    Emitter.init(this, 'player', game);
+
+}, Emitter, {
+
+    join: function(reconnect) {
+        this.emit('join', reconnect);
+    },
+
+    leave: function() {
+        this.emit('leave');
+    },
+
+    // Getter / Setter --------------------------------------------------------
+    setClient: function(client) {
+        this._client = client;
+    },
+
+    getClient: function() {
+        return this._client;
+    },
+
+    isNeutral: function() {
+        return this._isNeutral;
+    },
+
+    isLocal: function() {
+        return this._isLocal;
+    }
 
 });
 

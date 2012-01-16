@@ -46,30 +46,6 @@ var ServerPlayer = Class(function(game, neutral) {
 
     $id: 0,
 
-    setClient: function(client) {
-
-        if (!client) {
-            this._clientHash = this._client.getHash();
-            this._client.setPlayer(null);
-            this._client = null;
-            this._clientDisconnectTime = Date.now();
-
-            this.log('Unbound from client');
-
-        } else {
-            this._client = client;
-            this._client.setPlayer(this);
-
-            this._clientHash = null;
-            this._clientDisconnectTime = -1;
-
-            this.log('Bound to ', client.toString());
-
-        }
-
-
-    },
-
     join: function(reconnect) {
 
         var type = reconnect ? network.Game.Player.REJOINED
@@ -112,18 +88,42 @@ var ServerPlayer = Class(function(game, neutral) {
     },
 
 
-    // Getter -----------------------------------------------------------------
-    // ------------------------------------------------------------------------
+    // Getter / Setter --------------------------------------------------------
+    //
+    setClient: function(client) {
+
+        if (!client) {
+            this._clientHash = this._client.getHash();
+            this._client.setPlayer(null);
+            this._client = null;
+            this._clientDisconnectTime = Date.now();
+
+            this.log('Unbound from client');
+
+        } else {
+            this._client = client;
+            this._client.setPlayer(this);
+
+            this._clientHash = null;
+            this._clientDisconnectTime = -1;
+
+            this.log('Bound to ', client.toString());
+
+        }
+
+
+    },
+
+    getClient: function() {
+        return this._client;
+    },
+
     getClientHash: function() {
         return this._clientHash;
     },
 
     setClientHash: function(hash) {
         this._clientHash = hash;
-    },
-
-    getClient: function() {
-        return this._client;
     },
 
     isNeutral: function() {
@@ -146,20 +146,17 @@ var ServerPlayer = Class(function(game, neutral) {
     /**
       * {Object} Returns a network represenstation of the object.
       *
-      * If @own {Boolean} is `true`, additional data will be included which
+      * If @local {Boolean} is `true`, additional data will be included which
       * should only be seen by the player which this object belongs to.
       */
-    toMessage: function(own) {
+    toMessage: function(local) {
 
         var msg = {
             id: this.id,
             cid: this._client ? this._client.uid : null,
-            neutral: this._isNeutral
+            neutral: this._isNeutral,
+            local: local
         };
-
-        if (own) {
-            msg.own = true;
-        }
 
         return msg;
 

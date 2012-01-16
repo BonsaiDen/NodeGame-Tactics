@@ -22,10 +22,30 @@
 var Game = Class(function(client) {
 
     ClientGame.init(this, client);
-    this.on('start', this.start);
-    this.on('draw', this.draw);
-    this.on('tick', this.tick);
-    this.on('end', this.end);
+    //this.on('start', this.start);
+    //this.on('draw', this.draw);
+    //this.on('tick', this.tick);
+    //this.on('end', this.end);
+
+    this.on('join', function() {
+        console.log('joined game');
+    });
+
+    this.on('player.join', function(player, re) {
+        console.log('player ', player, 'joined game', re);
+    });
+
+    this.on('player.leave', function(player) {
+        console.log('player ', player, 'left game');
+    });
+
+    this.on('client.join', function(client) {
+        console.log('client ', client, 'joined game');
+    });
+
+    this.on('client.leave', function(client) {
+        console.log('client ', client, 'left game');
+    });
 
 }, ClientGame, {
 
@@ -42,26 +62,26 @@ var Game = Class(function(client) {
         'game.start',
         'game.end',
         'game.join',
-        'game.leave',
-        'game.client.list',
-        'game.player.list'
+        'game.leave'
 
     ],
 
-    start: function() {
+    start: function(msg) {
+        ClientGame.start(this, msg);
         console.log('Started');
     },
 
-    draw: function(t, tick) {
+    render: function(t, tick) {
 
     },
 
     tick: function(t, tick) {
-        console.log(t, tick, this.getRandom());
+        //console.log('Ended');
     },
 
     end: function() {
-        console.log('Ended');
+        ClientGame.end(this);
+        console.log('ended')
     }
 
 });

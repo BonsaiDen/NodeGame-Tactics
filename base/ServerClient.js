@@ -124,6 +124,7 @@ var ServerClient = Class(function(server, conn, msg) {
       */
     leaveGame: function(disconnected) {
 
+        this._game.getClients().remove(this);
         this._game.removeClient(this, disconnected || false);
         this.log('Left game #' + this._game.id);
         this._game = null;
@@ -215,26 +216,19 @@ var ServerClient = Class(function(server, conn, msg) {
         this._player = player;
     },
 
-
-    // Conversion -------------------------------------------------------------
-    // ------------------------------------------------------------------------
-
     /**
       * {Object} Returns a network represenstation of the object.
       *
-      * If @own {Boolean} is `true`, additional data will be included which
+      * If @local {Boolean} is `true`, additional data will be included which
       * should only be seen by the player which this object belongs to.
       */
-    toMessage: function(own) {
+    toMessage: function(local) {
 
         var msg = {
             id: this.uid,
-            name: this._name
+            name: this._name,
+            local: local
         };
-
-        if (own) {
-            msg.own = true;
-        }
 
         return msg;
 

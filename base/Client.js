@@ -31,14 +31,10 @@ var Client = Class(function(updateFps, renderFps, gameClass) {
     Emitter.init(this);
 
     this._isConnected = false;
-    this._isPlaying = false;
 
     this._tickRate = 0;
     this._tickCount = 0;
     this._tickSyncTime = -1;
-
-    this._players = new HashList();
-    this._clients = new HashList();
 
     this._gameClass = gameClass || ClientGame;
     this._game = null;
@@ -76,7 +72,7 @@ var Client = Class(function(updateFps, renderFps, gameClass) {
 
                 this._processMessageQueue();
                 this._randomState = tick;
-                this._game.emit('tick', (tick * this._tickRate) - this._tickRate, tick);
+                this._game.tick((tick * this._tickRate) - this._tickRate, tick);
                 this._lastTick = tick;
 
             }
@@ -88,14 +84,16 @@ var Client = Class(function(updateFps, renderFps, gameClass) {
     },
 
     render: function() {
-        this._game.emit('draw', this.getTime(), this.getTick());
+        this._game.render(this.getTime(), this.getTick());
     },
 
-    stop: function(msg) {
+    end: function(msg) {
 
-        Twist.stop(this);
-        this._game.emit('end', msg);
-        this._game = null;
+        if (this.isRunning()) {
+            Twist.stop(this);
+            this._game.end(msg);
+            this._game = null;
+        }
 
     },
 
@@ -131,7 +129,7 @@ var Client = Class(function(updateFps, renderFps, gameClass) {
         };
 
         this.socket.onclose = function(msg) {
-            that.stop();
+            that.end();
             that.emit('disconnect', !msg.wasClean);
         };
 
@@ -189,14 +187,6 @@ var Client = Class(function(updateFps, renderFps, gameClass) {
 
         return tick;
 
-    },
-
-    getClients: function() {
-        return this._clients;
-    },
-
-    getPlayers: function() {
-        return this._players;
     },
 
 
@@ -280,6 +270,7 @@ var Client = Class(function(updateFps, renderFps, gameClass) {
 
 
         case network.Client.Game.JOINED:
+            console.log('new game');
             this._game = new this._gameClass(this);
             this._game.emit('join', strip(msg));
             break;
@@ -311,8 +302,7 @@ var Client = Class(function(updateFps, renderFps, gameClass) {
                 this._tickCount = tick;
                 this._lastTick = this._tickCount;
 
-                this._isPlaying = true;
-                this._game.emit('start', strip(msg, true));
+                this._game.start(strip(msg, true));
                 Twist.start(this);
 
             }
@@ -322,7 +312,7 @@ var Client = Class(function(updateFps, renderFps, gameClass) {
 
         case network.Game.ENDED:
             this._processMessageQueue(true);
-            this.stop(strip(msg));
+            this.end(strip(msg));
             break;
 
 
@@ -346,88 +336,46 @@ var Client = Class(function(updateFps, renderFps, gameClass) {
         switch(type) {
 
         case network.Client.Game.LEFT:
-
             this._game.emit('leave', msg);
-            this.stop();
-            this._players.clear();
-            this._clients.clear();
+            this.end();
             break;
 
 
+        // Clients ------------------------------------------------------------
         case network.Game.Client.LIST:
-
-            this._clients.clear();
-
             for(var c = 0, cl = msg.length; c < cl; c++) {
-                this._clients.add(msg[c]);
+                this._game.addClient(msg[c].id, msg[c].name);
             }
-
-            this._game.emit('client.list', this._clients);
             break;
-
 
         case network.Game.Client.JOINED:
-        case network.Game.Client.REJOINED:
-
-            if (!this._clients.has(msg)) {
-
-                this._clients.add(msg);
-
-                var re = type === network.Game.Client.REJOINED;
-                this._game.emit('client.join', msg, re);
-                this._game.emit('client.list', this._clients);
-
-            }
+            this._game.addClient(msg.id, msg.name);
             break;
-
 
         case network.Game.Client.LEFT:
-
-            if (this._clients.has(msg)) {
-
-                var client = this._clients.get(msg);
-                this._clients.remove(client);
-                this._game.emit('client.leave', client);
-                this._game.emit('client.list', this._clients);
-
-            }
+            this._game.removeClient(msg.id);
             break;
 
 
+        // Players ------------------------------------------------------------
         case network.Game.Player.LIST:
-
-            this._players.clear();
-
             for(var p = 0, pl = msg.length; p < pl; p++) {
-                this._players.add(msg[p]); // new Player()
+                var m = msg[p];
+                this._game.addPlayer(m.id, m.cid, m.neutral, m.local, false);
             }
-
-            this._game.emit('player.list', this._players);
             break;
-
 
         case network.Game.Player.JOINED:
-
-            if (!this._players.has(msg)) {
-                this._players.add(msg);
-                this._game.emit('player.join', msg);
-                this._game.emit('player.list', this._players);
-            }
+            this._game.addPlayer(msg.id, msg.cid, msg.neutral, msg.local, false);
             break;
 
+        case network.Game.Player.REJOINED:
+            this._game.addPlayer(msg.id, msg.cid, msg.neutral, msg.local, true);
+            break;
 
         case network.Game.Player.LEFT:
-
-            if (this._players.has(msg)) {
-
-                var player = this._players.get(msg);
-                this._players.remove(player);
-                this._game.emit('player.leave', player);
-                this._game.emit('player.list', this._players);
-
-            }
+            this._game.removePlayer(msg.id);
             break;
-
 
         default:
             this._game.emit('message', type, msg);

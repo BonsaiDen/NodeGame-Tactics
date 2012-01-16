@@ -196,12 +196,13 @@ var ServerGame = Class(function(server, id, maxPlayers, playerTimeout) {
     // ------------------------------------------------------------------------
     addClient: function(client, watching) {
 
-        // Notify others
-        this.broadcast(network.Game.Client.JOINED, client.toMessage(), [client]);
-
         // Send list of clients to new one
         var tick = this.getTick();
-        // Join creates the game locally
+
+        // Notify others that a client joined
+        this.broadcast(network.Game.Client.JOINED, client.toMessage(), [client]);
+
+        // "Join" actually creates the game locally
         client.send(network.Client.Game.JOINED, tick, {
             id: this.id
         });
@@ -217,14 +218,18 @@ var ServerGame = Class(function(server, id, maxPlayers, playerTimeout) {
 
         });
 
-        client.send(network.Game.Client.LIST, tick, this._clients.map(function(cl) {
-            return cl.toMessage(client === cl);
-        }));
+        // Send out initial tick sync to client in case the game is already
+        // running.
 
-        // Do this BEFORE sending out the tick
+        // TODO: everything after this uses Tick syncing
         if (this.isRunning()) {
             client.send(network.Game.STARTED, tick, []);
         }
+
+        // Send clients
+        client.send(network.Game.Client.LIST, tick, this._clients.map(function(cl) {
+            return cl.toMessage(client === cl);
+        }));
 
         // Sync all clients game ticker (so random is "synced" too)
         this.broadcast(network.Game.TICK, tick % 250);
@@ -283,6 +288,7 @@ var ServerGame = Class(function(server, id, maxPlayers, playerTimeout) {
         // Mark the player as disconnected
         if (disconnect && client.getPlayer()) {
 
+            // TODO emit this from player.leave
             this.emit('client.leave', client, true);
             this.emit('player.leave', client.getPlayer(), true);
             client.getPlayer().setClient(null);
@@ -293,8 +299,8 @@ var ServerGame = Class(function(server, id, maxPlayers, playerTimeout) {
 
             this.emit('client.leave', client, false);
 
-            // TODO break up relationship and use something else. A Map?
             if (client.getPlayer()) {
+                // TODO emit this from player.leave
                 this.emit('player.leave', client.getPlayer(), false);
                 client.getPlayer().leave();
             }

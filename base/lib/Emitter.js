@@ -53,13 +53,15 @@ var Emitter = Class(function(group, parent) {
 
         var id = name;
 
-        //console.log(Array.prototype.slice.call(arguments))
-
         // Go up to parent
         if (this.__eventParent) {
 
-            arguments[0] = this.__eventGroup + '.' + id;
-            if (this.__eventParent.emit.apply(this.__eventParent, arguments)) {
+            // Add in this object to the arguments list
+            var args = Array.prototype.slice.call(arguments);
+            args[0] = this;
+            args.unshift(this.__eventGroup + '.' + id);
+
+            if (this.__eventParent.emit.apply(this.__eventParent, args)) {
                 return true;
             }
 
