@@ -16,11 +16,12 @@ build upon.
 - ✓ Tick synced Server / Clients with synced RNG and time
 - ✓ Joining / Leaving Games 
 - ✓ Sync Player / Client lists
-- o Simple Event System on Server and Client
-- Map players to clients and the other way around on the client
-- Twitter login
-- (auto) Choosing of player colors
+- ✓ Simple Event System on Server and Client
+- ✓ Map players to clients and the other way around on the client
+- ✓ Login via Twitter OAuth
+- Login UI
 - Simple Chat 
+- (auto) Choosing of player colors
 - Creating games with settings
 
 

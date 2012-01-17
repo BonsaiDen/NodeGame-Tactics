@@ -23,69 +23,52 @@
 
 // Imports --------------------------------------------------------------------
 var paperboy = require('./lib/paperboy'),
+    Class = require('./lib/Class'),
+    Logger = require('./lib/Logger'),
     path = require('path');
 
 
 // Static file Server ---------------------------------------------------------
 // ----------------------------------------------------------------------------
-var Static = function(base, root, maps) {
+var Static = Class(function(base, root) {
 
-    var webbase = path.dirname(base),
-        webroot = path.join(path.dirname(base), root);
+    Logger.init(this, 'Static');
+    this.webroot = path.join(path.dirname(base), root);
 
-    function log(ctx) {
+}, Logger, {
 
-    }
-
-    return function(req, res) {
+    request: function(req, res) {
 
         req.url = req.url.replace(/\.\./g, '');
 
         // Do some rewriting
         var start = req.url.split('/')[1],
-            root = webroot;
+            root = this.webroot;
 
         if (start === 'server') {
-            res.writeHead(404, {
-                'Content-Type': 'text/plain'
-            });
-
+            res.writeHead(404, { 'Content-Type': 'text/plain' });
             res.end('Error 404: File not found');
             return;
-
         }
 
-        var ip = req.connection.remoteAddress;
         paperboy.deliver(root, req, res)
             .addHeader('Expires', 3000)
             .addHeader('Cache-Control', 'max-age=300')
 
             .after(function(statCode) {
-                log(statCode, req.url, ip);
 
             }).error(function(statCode, msg) {
-
-                res.writeHead(statCode, {
-                    'Content-Type': 'text/plain'
-                });
-
+                res.writeHead(statCode, { 'Content-Type': 'text/plain' });
                 res.end('Error ' + statCode);
-                log(statCode, req.url, ip, msg);
 
             }).otherwise(function(err) {
-
-                res.writeHead(404, {
-                    'Content-Type': 'text/plain'
-                });
-
+                res.writeHead(404, { 'Content-Type': 'text/plain' });
                 res.end('Error 404: File not found');
-                log(404, req.url, ip);
-
             });
 
-    };
+    }
 
-};
+});
 
 module.exports = Static;
 

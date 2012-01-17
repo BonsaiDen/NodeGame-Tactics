@@ -25,17 +25,7 @@
 function assert(ok, message) {
 
     if (!ok) {
-
-        function Assertion() {
-            this.name = 'Assertion';
-            this.message = message || 'Failed';
-        }
-
-        Assertion.prototype = new Error();
-        Assertion.prototype.constructor = Assertion;
-
-        throw new Assertion();
-
+        console.error('Assertion Failed: ' + (msg || 'value is falsy'));
     }
 
 }

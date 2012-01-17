@@ -69,6 +69,7 @@ var Game = Class(function(server, id, maxPlayers, playerTimeout) {
 
 });
 
+
 // Helper Functions -----------------------------------------------------------
 function time(now, start) {
 

@@ -29,7 +29,9 @@ var BISON = require('./lib/bison'),
     HashList = require('./lib/HashList'),
     WebServer = require('./lib/WebSocket'),
     network = require('./network'),
-    crypto = require('crypto');
+    crypto = require('crypto'),
+    url  = require('url'),
+    fs = require('fs');
 
 
 // Game Server ----------------------------------------------------------------
@@ -47,16 +49,15 @@ var Server = Class(function(options) {
     this._maxGames = options.maxGames || 12;
     this._gameClass = options.gameClass;
 
-    // Networking
+    // Low level networking
     this._socket = new WebServer();
     this._bytesSend = 0;
-    this._port = options.port || 4400;
-
+    this._port = null;
 
     // Web Sockets
     var that = this;
-    this._socket.on('connection', function(conn) {
-        that.onConnection(conn);
+    this._socket.on('connection', function(conn, req) {
+        that.onConnection(conn, req);
     });
 
     this._socket.on('data', function(conn, data, binary) {
@@ -67,9 +68,8 @@ var Server = Class(function(options) {
         that.onClose(conn);
     });
 
-    // Authentication
-    this._authSessions = {};
-
+    // Auth
+    this._authHandler = options.authHandler;
 
     // HTTP
     this._httpHandler = options.httpHandler;
@@ -77,70 +77,41 @@ var Server = Class(function(options) {
         that.onHTTPRequest(req, res);
     });
 
-    this._socket.listen(this._port);
-
-    this.log('Started on port', this._port,
-                '| Max clients:', this._maxClients,
-                '| Max games:', this._maxGames);
-
 }, Logger, {
 
-    /**
-      * Handle HTTP requests and authentication via Twitter
-      */
-    onHTTPRequest: function(req, res) {
+    // Let's stick to the common NodeJS interace
+    listen: function(port) {
 
-        var session = this.getSession(req, res);
-        this._httpHandler ? this._httpHandler(req, res) : null;
+        // Sessions
+        this.readSessions();
 
-    },
+        this._port = port;
 
-    /**
-      * Simple http session via cookie.
-      */
-    getSession: function(req, res) {
+        // Get it started
+        this._socket.listen(this._port);
 
-        var cookie = req.headers.cookie || '',
-            pos = cookie.indexOf('session='),
-            session = null,
-            key;
+        process.on('SIGINT', function() {
+            process.exit();
+        });
 
-        if (pos !== -1) {
+        var that = this;
+        process.on('exit', function() {
+            that.onExit();
+        });
 
-            key = cookie.substr(pos + 8, 32);
-            if (this._authSessions[key]) {
-                session = this._authSessions[key];
-
-            } else {
-                session = this._authSessions[key] = {};
-            }
-
-        }
-
-        if (session === null) {
-
-            var hash = crypto.createHash('md5');
-            hash.update(Date.now() + '-' + req.remoteAdress + '-' + req.remotePort);
-            hash.update(req.headers['user-agent'] || 'default');
-
-            key = hash.digest('hex');
-            session = this._authSessions[key] = {};
-
-            session.secret = Math.floor(Math.random() * 100);
-
-        }
-
-        session.key = key;
-        res.setHeader('Set-Cookie', 'session=' + session.key + '; ');
-
-        return session;
+        this.log('Started on port', this._port,
+                    '| Max clients:', this._maxClients,
+                    '| Max games:', this._maxGames);
 
     },
-
 
     // Network Events ---------------------------------------------------------
     // ------------------------------------------------------------------------
-    onConnection: function(conn) {
+    onConnection: function(conn, req) {
+
+        this.getSession(req);
+
+        console.log('User: ', req.session.user);
 
         if (this._clients.length >= this._maxClients) {
 
@@ -220,8 +191,11 @@ var Server = Class(function(options) {
 
     },
 
+    onExit: function() {
+        this.writeSessions();
+        this.log('Shutting down...');
+    },
 
-    // Networking -------------------------------------------------------------
     broadcast: function(type, msg, clients, exclude) {
 
         // Add the type to the message
@@ -280,7 +254,6 @@ var Server = Class(function(options) {
 
     },
 
-    // TODO
     removeGame: function(gid) {
 
         var game = this._games.get(gid);
@@ -311,12 +284,118 @@ var Server = Class(function(options) {
 
     },
 
-
     /**
       * {String} Returns a string based represenation of the object.
       */
     toString: function() {
         return 'Server';
+    },
+
+
+    // HTTP, Session and Auth Handling ----------------------------------------
+    // ------------------------------------------------------------------------
+    onHTTPRequest: function(req, res) {
+
+        var data = url.parse(req.url, true);
+        req.query = data.query;
+        req.pathname = data.pathname;
+
+        this.getSession(req, res);
+
+        if (this._authHandler ? this._authHandler.request(req, res) : null) {
+            return;
+
+        } else {
+            return this._httpHandler ? this._httpHandler.request(req, res) : null;
+        }
+
+    },
+
+
+    // Session Management -----------------------------------------------------
+    // ------------------------------------------------------------------------
+    getSession: function(req, res) {
+
+        var cookie = req.headers.cookie || '',
+            pos = cookie.indexOf('session='),
+            session = null,
+            key = null;
+
+        if (pos !== -1) {
+
+            // Really bad cookie handling...
+            key = cookie.substr(pos + 8, 32);
+            if (this._sessions[key]) {
+                session = this._sessions[key];
+
+            } else {
+                session = this._sessions[key] = {
+                    user: null
+                };
+            }
+
+        }
+
+        this.log('[SESSION] Key:', key);
+
+        if (res) {
+
+            // Create new session
+            if (session === null) {
+
+                var hash = crypto.createHash('md5');
+                hash.update(Date.now() + '-' + req.remoteAdress + '-' + req.remotePort);
+                hash.update(Math.random());
+
+                key = hash.digest('hex');
+                session = this._sessions[key] = {};
+
+                res.setHeader('Set-Cookie', 'session=' + key + '; ');
+
+            }
+
+            session._lastVisit = Date.now();
+            session._key = key;
+
+        }
+
+        req.session = session;
+
+    },
+
+    readSessions: function() {
+
+        try {
+
+            this._sessions = JSON.parse(fs.readFileSync('session.json'));
+            this.log('Read session data from disk');
+
+            for(var i in this._sessions) {
+
+                if (Date.now() - this._sessions[i]._lastVisit > 1000 * 60 * 60 * 24) {
+                    this.log('Session was dropped:', i);
+                    delete this._sessions[i];
+                }
+
+            }
+
+        } catch(e) {
+            this.log('No session data found: ', e.message);
+            this._sessions = {};
+        }
+
+    },
+
+    writeSessions: function() {
+
+        try {
+            fs.writeFileSync('session.json', JSON.stringify(this._sessions));
+            this.log('Wrote session data to disk.');
+
+        } catch(e) {
+            this.log('Session data could not be saved: ', e);
+        }
+
     }
 
 });

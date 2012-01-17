@@ -609,10 +609,10 @@ function Server() {
 
     });
 
-    function connection(conn) {
+    function connection(conn, req) {
 
         connections[conn.id] = conn;
-        that.emit('connection', conn);
+        that.emit('connection', conn, req);
 
         conn.on('data', function(data, binary) {
             that.emit('data', conn, data, binary);
@@ -645,7 +645,7 @@ function Server() {
 
             var conn = new Connection(req, socket, upgradeHeader);
             if (conn.connected) {
-                connection(conn);
+                connection(conn, req);
             }
 
         } else {
