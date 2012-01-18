@@ -22,13 +22,13 @@
 
 
 // Imports --------------------------------------------------------------------
-var Class = require('./lib/Class'),
-    ServerPlayer = require('./ServerPlayer'),
-    HashList = require('./lib/HashList'),
-    Emitter = require('./lib/Emitter'),
-    Logger = require('./lib/Logger'),
-    assert = require('./lib/assert'),
-    network = require('./network');
+var Class = require('../lib/Class'),
+    ServerPlayer = require('./Player'),
+    HashList = require('../lib/HashList'),
+    Emitter = require('../lib/Emitter'),
+    Logger = require('../lib/Logger'),
+    assert = require('../lib/assert'),
+    network = require('../network');
 
 
 // Basic Server Game Class ----------------------------------------------------

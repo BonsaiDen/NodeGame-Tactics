@@ -20,12 +20,12 @@
   * THE SOFTWARE.
   */
 
-/*global Emitter, Class, assert */
+/*global Emitter, Class, Client, assert */
 
 
 // Basic client side player ---------------------------------------------------
 // ----------------------------------------------------------------------------
-var ClientPlayer = Class(function(game, id, isNeutral, isLocal) {
+Client.Player = Class(function(game, id, isNeutral, isLocal) {
 
     this.id = id;
     this._game = game;

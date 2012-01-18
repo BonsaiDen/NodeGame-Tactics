@@ -44,6 +44,3 @@ interpolation, effects and everything else will also use the RNG.
 
 Of course, actual validation will be performed by the server.
 
-
-
-

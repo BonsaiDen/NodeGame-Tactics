@@ -22,12 +22,12 @@
 
 
 // Imports --------------------------------------------------------------------
-var HashList = require('./lib/HashList'),
-    Class = require('./lib/Class'),
-    BISON = require('./lib/bison'),
-    Logger = require('./lib/Logger'),
-    assert = require('./lib/assert'),
-    network = require('./network'),
+var HashList = require('../lib/HashList'),
+    Class = require('../lib/Class'),
+    BISON = require('../lib/bison'),
+    Logger = require('../lib/Logger'),
+    network = require('../network'),
+    assert = require('../lib/assert'),
     crypto = require('crypto');
 
 

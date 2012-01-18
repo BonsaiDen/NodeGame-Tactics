@@ -20,6 +20,7 @@
   * THE SOFTWARE.
   */
 
+
 /*global Emitter, Twist, HashList, BISON,
          network, Class, MozWebSocket, ClientGame, assert
 */

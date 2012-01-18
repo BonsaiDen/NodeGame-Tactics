@@ -20,17 +20,17 @@
   * THE SOFTWARE.
   */
 
-/*global Emitter, Class, HashList, ClientPlayer, assert */
+/*global Emitter, Class, HashList, Client, assert */
 
 
 // Client Game ----------------------------------------------------------------
 // ----------------------------------------------------------------------------
-var ClientGame = Class(function(client, playerClass) {
+Client.Game = Class(function(client, playerClass) {
 
     Emitter.init(this, 'game', client);
 
     this._client = client;
-    this._playerClass = playerClass || ClientPlayer;
+    this._playerClass = playerClass || Client.Player;
 
     this._players = new HashList();
     this._clients = new HashList();

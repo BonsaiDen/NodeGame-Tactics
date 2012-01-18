@@ -19,9 +19,13 @@
   * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
   * THE SOFTWARE.
   */
+
+
+/*global Class, Client, assert */
+
 var Game = Class(function(client) {
 
-    ClientGame.init(this, client);
+    Client.Game.init(this, client);
     //this.on('start', this.start);
     //this.on('draw', this.draw);
     //this.on('tick', this.tick);
@@ -47,7 +51,7 @@ var Game = Class(function(client) {
         console.log('client ', client, 'left game');
     });
 
-}, ClientGame, {
+}, Client.Game, {
 
     events: [
 
@@ -67,7 +71,7 @@ var Game = Class(function(client) {
     ],
 
     start: function(msg) {
-        ClientGame.start(this, msg);
+        Client.Game.start(this, msg);
         console.log('Started');
     },
 
@@ -76,12 +80,12 @@ var Game = Class(function(client) {
     },
 
     tick: function(t, tick) {
-        //console.log('Ended');
+        console.log(t, tick, this.getRandom());
     },
 
     end: function() {
-        ClientGame.end(this);
-        console.log('ended')
+        Client.Game.end(this);
+        console.log('ended');
     }
 
 });

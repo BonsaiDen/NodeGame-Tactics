@@ -23,8 +23,8 @@
 
 // Imports --------------------------------------------------------------------
 var paperboy = require('./lib/paperboy'),
-    Class = require('./lib/Class'),
-    Logger = require('./lib/Logger'),
+    Class = require('../base/lib/Class'),
+    Logger = require('../base/lib/Logger'),
     path = require('path');
 
 

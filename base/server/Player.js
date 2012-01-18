@@ -22,11 +22,11 @@
 
 
 // Imports --------------------------------------------------------------------
-var Class = require('./lib/Class'),
-    network = require('./network'),
-    Emitter = require('./lib/Emitter'),
-    Logger = require('./lib/Logger'),
-    assert = require('./lib/assert');
+var Class = require('../lib/Class'),
+    network = require('../network'),
+    Emitter = require('../lib/Emitter'),
+    Logger = require('../lib/Logger'),
+    assert = require('../lib/assert');
 
 /**
   * {ServerPlayer} Create a new player for the given @game {Game}.

@@ -22,13 +22,15 @@
 
 
 // Imports --------------------------------------------------------------------
-var BISON = require('./lib/bison'),
-    Class = require('./lib/Class'),
-    Logger = require('./lib/Logger'),
-    ServerClient = require('./ServerClient'),
-    HashList = require('./lib/HashList'),
-    WebServer = require('./lib/WebSocket'),
-    network = require('./network'),
+var BISON = require('../lib/bison'),
+    Class = require('../lib/Class'),
+    Logger = require('../lib/Logger'),
+    ServerClient = require('./Client'),
+    ServerGame = require('./Game'),
+    ServerPlayer = require('./Player'),
+    HashList = require('../lib/HashList'),
+    WebServer = require('../lib/WebSocket'),
+    network = require('../network'),
     crypto = require('crypto'),
     url  = require('url'),
     fs = require('fs');
@@ -345,7 +347,7 @@ var Server = Class(function(options) {
 
                 var hash = crypto.createHash('md5');
                 hash.update(Date.now() + '-' + req.remoteAdress + '-' + req.remotePort);
-                hash.update(Math.random());
+                hash.update('' + Math.random());
 
                 key = hash.digest('hex');
                 session = this._sessions[key] = {};
@@ -399,6 +401,10 @@ var Server = Class(function(options) {
     }
 
 });
+
+Server.Client = ServerClient;
+Server.Player = ServerPlayer;
+Server.Game = ServerGame;
 
 module.exports = Server;
 

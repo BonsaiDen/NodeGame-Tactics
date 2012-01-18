@@ -22,14 +22,14 @@
 
 // Imports --------------------------------------------------------------------
 var Class = require('../base/lib/Class'),
-    ServerGame = require('../base/ServerGame'),
+    ServerGame = require('../base/server').Game,
     network = require('../base/network'),
     Logger = require('../base/lib/Logger');
 
 
 // Game Class -----------------------------------------------------------------
 // ----------------------------------------------------------------------------
-var Game = Class(function(server, id, maxPlayers, playerTimeout) {
+module.exports = Class(function(server, id, maxPlayers, playerTimeout) {
 
     ServerGame.init(this, server, id, maxPlayers, playerTimeout);
     Logger.init(this, 'Game');
@@ -86,6 +86,4 @@ function time(now, start) {
     }
 
 }
-
-module.exports = Game;
 
