@@ -22,31 +22,27 @@
 
 
 // Imports --------------------------------------------------------------------
-var Class = require('../lib/Class'),
-    ServerPlayer = require('./Player'),
-    HashList = require('../lib/HashList'),
-    Emitter = require('../lib/Emitter'),
-    Logger = require('../lib/Logger'),
-    assert = require('../lib/assert'),
+var lib = require('../lib'),
+    Player = require('./Player'),
     network = require('../network');
 
 
 // Basic Server Game Class ----------------------------------------------------
 // ----------------------------------------------------------------------------
-var ServerGame = Class(function(server, id, maxPlayers, playerTimeout) {
+var Game = lib.Class(function(server, id, maxPlayers, playerTimeout) {
 
-    Emitter.init(this);
-    Logger.init(this, 'ServerGame');
+    lib.Emitter.init(this);
+    lib.Logger.init(this, 'Game');
 
     this.id = id;
     this._server = server;
 
     // Players
     this._maxPlayers = maxPlayers || 6;
-    this._players = new HashList(maxPlayers);
-    this._clients = new HashList();
+    this._players = new lib.HashList(maxPlayers);
+    this._clients = new lib.HashList();
     this._playerTimeout = playerTimeout || 1000;
-    this._playerClass = ServerPlayer;
+    this._playerClass = Player;
 
     // Ticking
     this._tickTime = 0;
@@ -69,11 +65,11 @@ var ServerGame = Class(function(server, id, maxPlayers, playerTimeout) {
 
     var that = this;
     setTimeout(function() {
-        ServerGame.start(that);
+        Game.start(that);
 
     }, 2000);
 
-}, Emitter, Logger, {
+}, lib.Emitter, lib.Logger, {
 
     // Main Game loop ---------------------------------------------------------
     start: function() {
@@ -198,7 +194,7 @@ var ServerGame = Class(function(server, id, maxPlayers, playerTimeout) {
     addClient: function(client, watching) {
 
         // Add client to list
-        assert(!this._clients.has(client), 'client already in list');
+        lib.assert(!this._clients.has(client), 'client already in list');
         this._clients.add(client);
         this.emit('client.join', client);
 
@@ -244,20 +240,20 @@ var ServerGame = Class(function(server, id, maxPlayers, playerTimeout) {
         if (!watching) {
 
             // Figure out if we can/should reconnect the player
-            var that = this;
-            function reconnect(player) {
+            var that = this,
+                reconnect = function (player) {
 
-                if (!player.getClient()
-                    && player.getClientHash() === client.getHash()) {
+                    if (!player.getClient()
+                        && player.getClientHash() === client.getHash()) {
 
-                    player.setClient(client);
-                    player.join(true);
-                    client.updateHash();
-                    return true;
+                        player.setClient(client);
+                        player.join(true);
+                        client.updateHash();
+                        return true;
 
-                }
+                    }
 
-            }
+                };
 
             if (!this._players.each(reconnect)) {
 
@@ -265,7 +261,7 @@ var ServerGame = Class(function(server, id, maxPlayers, playerTimeout) {
 
                     // Create new player
                     var player = new this._playerClass(this, false);
-                    assert(this._players.add(player), 'player already in list');
+                    lib.assert(this._players.add(player), 'player already in list');
 
                     player.setClient(client);
                     player.join(false);
@@ -287,7 +283,7 @@ var ServerGame = Class(function(server, id, maxPlayers, playerTimeout) {
     removeClient: function(client, disconnect) {
 
         // Remove client from list
-        assert(this._clients.remove(client), 'client not in list');
+        lib.assert(this._clients.remove(client), 'client not in list');
         this.emit('client.leave', client);
 
         // Mark the player as disconnected
@@ -355,5 +351,5 @@ var ServerGame = Class(function(server, id, maxPlayers, playerTimeout) {
 
 });
 
-module.exports = ServerGame;
+module.exports = Game;
 

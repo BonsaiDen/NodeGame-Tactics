@@ -22,13 +22,15 @@
 
 
 /*global Emitter, Twist, HashList, BISON,
-         network, Class, MozWebSocket, ClientGame, assert
+         Class, MozWebSocket, assert, ticked
 */
 
 
 // Client ---------------------------------------------------------------------
 // ----------------------------------------------------------------------------
-var Client = Class(function(updateFps, renderFps, gameClass) {
+window.ticked = {};
+
+ticked.Client = Class(function(updateFps, renderFps, gameClass) {
 
     Twist.init(this, updateFps, renderFps);
     Emitter.init(this);
@@ -39,7 +41,7 @@ var Client = Class(function(updateFps, renderFps, gameClass) {
     this._tickCount = 0;
     this._tickSyncTime = -1;
 
-    this._gameClass = gameClass || ClientGame;
+    this._gameClass = gameClass || ticked.Client.Game;
     this._game = null;
 
     this._baseTick = 0; // base tick
@@ -122,7 +124,7 @@ var Client = Class(function(updateFps, renderFps, gameClass) {
 
             hash = hash || '--------------------------------';
 
-            that.send(network.Client.CONNECT, {
+            that.send(ticked.network.Client.CONNECT, {
                 hash: hash,
                 name: name
             });
@@ -143,14 +145,14 @@ var Client = Class(function(updateFps, renderFps, gameClass) {
     // Interactions -----------------------------------------------------------
     joinGame: function(id) {
 
-        this.send(network.Client.Game.JOIN, {
+        this.send(ticked.network.Client.Game.JOIN, {
             game: 1
         });
 
     },
 
     leaveGame: function() {
-        this.send(network.Client.Game.LEAVE);
+        this.send(ticked.network.Client.Game.LEAVE);
     },
 
 
@@ -252,7 +254,7 @@ var Client = Class(function(updateFps, renderFps, gameClass) {
 
         switch(type) {
 
-        case network.Client.HASH:
+        case ticked.network.Client.HASH:
 
             try {
                 localStorage.setItem(this.key, msg.hash);
@@ -262,22 +264,22 @@ var Client = Class(function(updateFps, renderFps, gameClass) {
 
             break;
 
-        case network.Client.CONNECT:
+        case ticked.network.Client.CONNECT:
             this._isConnected = true;
             this.emit('connect');
             break;
 
-        case network.Server.SETTINGS:
+        case ticked.network.Server.SETTINGS:
             this.emit('settings', strip(msg, true));
             break;
 
-        case network.Client.Game.JOINED:
+        case ticked.network.Client.Game.JOINED:
             assert(this._game === null);
             this._game = new this._gameClass(this);
             this._game.emit('join', strip(msg));
             break;
 
-        case network.Game.SETTINGS:
+        case ticked.network.Game.SETTINGS:
             this._tickRate = msg.tickRate;
             this._logicRate = msg.logicRate;
             this._syncRate = msg.syncRate;
@@ -285,11 +287,11 @@ var Client = Class(function(updateFps, renderFps, gameClass) {
             this._game.emit('settings', strip(msg, true));
             break;
 
-        case network.Server.Game.LIST:
+        case ticked.network.Server.Game.LIST:
             this.emit('gameList', strip(msg, true));
             break;
 
-        case network.Game.STARTED:
+        case ticked.network.Game.STARTED:
 
             assert(this.isRunning() === false);
 
@@ -305,12 +307,12 @@ var Client = Class(function(updateFps, renderFps, gameClass) {
 
             break;
 
-        case network.Game.ENDED:
+        case ticked.network.Game.ENDED:
             this._processMessageQueue(true);
             this.end(strip(msg));
             break;
 
-        case network.ERROR:
+        case ticked.network.ERROR:
             this.emit('error', strip(msg, true));
             break;
 
@@ -328,41 +330,41 @@ var Client = Class(function(updateFps, renderFps, gameClass) {
 
         switch(type) {
 
-        case network.Client.Game.LEFT:
+        case ticked.network.Client.Game.LEFT:
             this._game.emit('leave', msg);
             this.end();
             break;
 
 
         // Clients ------------------------------------------------------------
-        case network.Game.Client.LIST:
+        case ticked.network.Game.Client.LIST:
             for(var c = 0, cl = msg.length; c < cl; c++) {
                 this._game.addClient(msg[c].id, msg[c].name, msg[c].local);
             }
             break;
 
-        case network.Game.Client.JOINED:
+        case ticked.network.Game.Client.JOINED:
             this._game.addClient(msg.id, msg.name, msg.local);
             break;
 
-        case network.Game.Client.LEFT:
+        case ticked.network.Game.Client.LEFT:
             this._game.removeClient(msg.id);
             break;
 
 
         // Players ------------------------------------------------------------
-        case network.Game.Player.LIST:
+        case ticked.network.Game.Player.LIST:
             for(var p = 0, pl = msg.length; p < pl; p++) {
                 var m = msg[p];
                 this._game.addPlayer(m.id, m.cid, m.neutral, m.local, false);
             }
             break;
 
-        case network.Game.Player.JOINED:
+        case ticked.network.Game.Player.JOINED:
             this._game.addPlayer(msg.id, msg.cid, msg.neutral, msg.local, false);
             break;
 
-        case network.Game.Player.REJOINED:
+        case ticked.network.Game.Player.REJOINED:
 
             var player = this._game.getPlayer(msg.id);
             assert(player);
@@ -373,7 +375,7 @@ var Client = Class(function(updateFps, renderFps, gameClass) {
             //this._game.addPlayer(msg.id, msg.cid, msg.neutral, msg.local, true);
             break;
 
-        case network.Game.Player.LEFT:
+        case ticked.network.Game.Player.LEFT:
             this._game.removePlayer(msg.id);
             break;
 

@@ -20,58 +20,24 @@
   * THE SOFTWARE.
   */
 
-/*global Emitter, Class, Client, assert */
 
+// Imports --------------------------------------------------------------------
+var ticked = require('../ticked'),
+    Game = require('./Game'),
+    Static = require('./Static'),
+    TwitterAuth = require('./TwitterAuth'),
+    fs = require('fs');
 
-// Basic client side player ---------------------------------------------------
-// ----------------------------------------------------------------------------
-Client.Player = Class(function(game, id, isNeutral, isLocal) {
+exports.run = function() {
 
-    this.id = id;
-    this._game = game;
-    this._isNeutral = isNeutral;
-    this._isLocal = isLocal;
-    this._client = null;
+    var server = new ticked.Server({
+        gameClass: Game,
+        httpHandler: new Static(__filename, '../'),
+        authHandler: new TwitterAuth(JSON.parse(fs.readFileSync('server/authConfig.json'))),
+        sessionFile: './server/storedSessions.json'
+    });
 
-    Emitter.init(this, 'player', game);
+    server.listen(ticked.network.PORT);
 
-}, Emitter, {
-
-    join: function(reconnect) {
-        this.emit('join', reconnect);
-    },
-
-    leave: function() {
-        this.emit('leave');
-    },
-
-    // Getter / Setter --------------------------------------------------------
-    setClient: function(client) {
-
-        this._client = client;
-
-        if (client !== null) {
-            assert(this._client.player === null);
-            this._client.player = this;
-        }
-
-    },
-
-    getClient: function() {
-        return this._client;
-    },
-
-    isNeutral: function() {
-        return this._isNeutral;
-    },
-
-    isLocal: function() {
-        return this._isLocal;
-    },
-
-    isRemote: function() {
-        return !this._isLocal;
-    }
-
-});
+};
 

@@ -1,2 +1,2 @@
-auth.json
-session.json
+server/authConfig.json
+server/storedSessions.json

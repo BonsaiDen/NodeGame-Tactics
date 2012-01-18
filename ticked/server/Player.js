@@ -22,11 +22,8 @@
 
 
 // Imports --------------------------------------------------------------------
-var Class = require('../lib/Class'),
-    network = require('../network'),
-    Emitter = require('../lib/Emitter'),
-    Logger = require('../lib/Logger'),
-    assert = require('../lib/assert');
+var lib = require('../lib'),
+    network = require('../network');
 
 /**
   * {ServerPlayer} Create a new player for the given @game {Game}.
@@ -34,10 +31,10 @@ var Class = require('../lib/Class'),
   * @id {Integer} The ID this player should use for identification
   * @neutral {Boolean?} is special flag
   */
-var ServerPlayer = Class(function(game, neutral) {
+var ServerPlayer = lib.Class(function(game, neutral) {
 
-    Logger.init(this, 'ServerPlayer');
-    Emitter.init(this, 'player', game);
+    lib.Logger.init(this, 'ServerPlayer');
+    lib.Emitter.init(this, 'player', game);
 
     this.id = ++ServerPlayer.$id;
     this._game = game;
@@ -45,7 +42,7 @@ var ServerPlayer = Class(function(game, neutral) {
     this._clientHash = null;
     this._isNeutral = neutral || false;
 
-}, Emitter, Logger, {
+}, lib.Emitter, lib.Logger, {
 
     $id: 0,
 
@@ -83,7 +80,7 @@ var ServerPlayer = Class(function(game, neutral) {
 
 
         // Remove player from game
-        assert(this._game.getPlayers().remove(this), 'player not in list');
+        lib.assert(this._game.getPlayers().remove(this), 'player not in list');
         this._game = null;
 
         this.emit('leave');

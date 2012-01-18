@@ -21,16 +21,15 @@
   */
 
 // Imports --------------------------------------------------------------------
-var Class = require('../base/lib/Class'),
-    OAuth = require('oauth').OAuth,
-    Logger = require('../base/lib/Logger');
+var lib = require('../ticked').lib,
+    OAuth = require('oauth').OAuth;
 
 
 // Twitter OAuth handler ------------------------------------------------------
 // ----------------------------------------------------------------------------
-var TwitterAuth = Class(function(options) {
+var TwitterAuth = lib.Class(function(options) {
 
-    Logger.init(this, 'OAuth');
+    lib.Logger.init(this, 'OAuth');
 
     this._oAuth = new OAuth(
         'https://api.twitter.com/oauth/request_token',
@@ -43,7 +42,7 @@ var TwitterAuth = Class(function(options) {
     );
 
 
-}, Logger, {
+}, lib.Logger, {
 
     request: function(req, res) {
 

@@ -19,6 +19,8 @@
   * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
   * THE SOFTWARE.
   */
+
+/*global ticked */
 (function() {
 
     var network = {
@@ -81,6 +83,7 @@
 
         // Error codes
         Error: {
+            LOGIN_MISSING: 0,
             SERVER_FULL: 1,
             INVALID_CONNECT: 2,
             INVALID_GAME: 3,
@@ -94,7 +97,7 @@
         module.exports = network;
 
     } else {
-        window.network = network;
+        ticked.network = network;
     }
 
 })();

@@ -21,11 +21,11 @@
   */
 
 
-/*global Class, Client, assert */
+/*global Class, assert, ticked */
 
 var Game = Class(function(client) {
 
-    Client.Game.init(this, client);
+    ticked.Client.Game.init(this, client);
     //this.on('start', this.start);
     //this.on('draw', this.draw);
     //this.on('tick', this.tick);
@@ -51,7 +51,7 @@ var Game = Class(function(client) {
         console.log('client ', client, 'left game');
     });
 
-}, Client.Game, {
+}, ticked.Client.Game, {
 
     events: [
 
@@ -71,7 +71,7 @@ var Game = Class(function(client) {
     ],
 
     start: function(msg) {
-        Client.Game.start(this, msg);
+        ticked.Client.Game.start(this, msg);
         console.log('Started');
     },
 
@@ -84,7 +84,7 @@ var Game = Class(function(client) {
     },
 
     end: function() {
-        Client.Game.end(this);
+        ticked.Client.Game.end(this);
         console.log('ended');
     }
 

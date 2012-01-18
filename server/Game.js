@@ -21,18 +21,16 @@
   */
 
 // Imports --------------------------------------------------------------------
-var Class = require('../base/lib/Class'),
-    ServerGame = require('../base/server').Game,
-    network = require('../base/network'),
-    Logger = require('../base/lib/Logger');
+var ticked = require('../ticked'),
+    lib = ticked.lib;
 
 
 // Game Class -----------------------------------------------------------------
 // ----------------------------------------------------------------------------
-module.exports = Class(function(server, id, maxPlayers, playerTimeout) {
+module.exports = lib.Class(function(server, id, maxPlayers, playerTimeout) {
 
-    ServerGame.init(this, server, id, maxPlayers, playerTimeout);
-    Logger.init(this, 'Game');
+    ticked.Server.Game.init(this, server, id, maxPlayers, playerTimeout);
+    lib.Logger.init(this, 'Game');
 
     this.on('game.start', this.start);
     this.on('game.tick', this.tick);
@@ -42,7 +40,7 @@ module.exports = Class(function(server, id, maxPlayers, playerTimeout) {
 
     this.log('Created');
 
-}, ServerGame, {
+}, ticked.Server.Game, {
 
     start: function() {
         this.log('Started at', time(this._startTime), 'tick rate is '

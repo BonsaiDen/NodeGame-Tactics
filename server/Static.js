@@ -23,19 +23,18 @@
 
 // Imports --------------------------------------------------------------------
 var paperboy = require('./lib/paperboy'),
-    Class = require('../base/lib/Class'),
-    Logger = require('../base/lib/Logger'),
+    lib = require('../ticked').lib,
     path = require('path');
 
 
 // Static file Server ---------------------------------------------------------
 // ----------------------------------------------------------------------------
-var Static = Class(function(base, root) {
+var Static = lib.Class(function(base, root) {
 
-    Logger.init(this, 'Static');
+    lib.Logger.init(this, 'Static');
     this.webroot = path.join(path.dirname(base), root);
 
-}, Logger, {
+}, lib.Logger, {
 
     request: function(req, res) {
 

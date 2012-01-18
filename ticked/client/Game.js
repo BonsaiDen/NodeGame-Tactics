@@ -25,12 +25,12 @@
 
 // Client Game ----------------------------------------------------------------
 // ----------------------------------------------------------------------------
-Client.Game = Class(function(client, playerClass) {
+ticked.Client.Game = Class(function(client, playerClass) {
 
     Emitter.init(this, 'game', client);
 
     this._client = client;
-    this._playerClass = playerClass || Client.Player;
+    this._playerClass = playerClass || ticked.Client.Player;
 
     this._players = new HashList();
     this._clients = new HashList();

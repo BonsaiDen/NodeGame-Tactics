@@ -22,7 +22,8 @@
 
 
 // Imports --------------------------------------------------------------------
-var HashList = require('../lib/HashList'),
+var lib = require('../lib'),
+    HashList = require('../lib/HashList'),
     Class = require('../lib/Class'),
     BISON = require('../lib/bison'),
     Logger = require('../lib/Logger'),
@@ -33,16 +34,16 @@ var HashList = require('../lib/HashList'),
 
 // Game Server Client ---------------------------------------------------------
 // ----------------------------------------------------------------------------
-var ServerClient = Class(function(server, conn, msg) {
+var Client = Class(function(server, conn, msg) {
 
-    Logger.init(this, 'ServerClient');
+    Logger.init(this, 'Client');
 
     this._server = server;
     this._conn = conn;
 
     // IDs
     this.id = this._conn.id;
-    this.uid = ++ServerClient.$id;
+    this.uid = ++Client.$id;
 
     // State
     this._hash = msg.hash;
@@ -252,5 +253,5 @@ var ServerClient = Class(function(server, conn, msg) {
 
 });
 
-module.exports = ServerClient;
+module.exports = Client;
 

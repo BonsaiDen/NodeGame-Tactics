@@ -22,14 +22,10 @@
 
 
 // Imports --------------------------------------------------------------------
-var BISON = require('../lib/bison'),
-    Class = require('../lib/Class'),
-    Logger = require('../lib/Logger'),
-    ServerClient = require('./Client'),
-    ServerGame = require('./Game'),
-    ServerPlayer = require('./Player'),
-    HashList = require('../lib/HashList'),
-    WebServer = require('../lib/WebSocket'),
+var lib = require('../lib'),
+    Client = require('./Client'),
+    Game = require('./Game'),
+    Player = require('./Player'),
     network = require('../network'),
     crypto = require('crypto'),
     url  = require('url'),
@@ -38,21 +34,21 @@ var BISON = require('../lib/bison'),
 
 // Game Server ----------------------------------------------------------------
 // ----------------------------------------------------------------------------
-var Server = Class(function(options) {
+var Server = lib.Class(function(options) {
 
-    Logger.init(this, 'Server');
+    lib.Logger.init(this, 'Server');
 
     // Clients
-    this._clients = new HashList();
+    this._clients = new lib.HashList();
     this._maxClients = options.maxClients || 60;
 
     // Game stuff
-    this._games = new HashList();
+    this._games = new lib.HashList();
     this._maxGames = options.maxGames || 12;
     this._gameClass = options.gameClass;
 
     // Low level networking
-    this._socket = new WebServer();
+    this._socket = new lib.WebSocket();
     this._bytesSend = 0;
     this._port = null;
 
@@ -63,7 +59,7 @@ var Server = Class(function(options) {
     });
 
     this._socket.on('data', function(conn, data, binary) {
-        that.onMessage(conn, BISON.decode(data));
+        that.onMessage(conn, lib.BISON.decode(data));
     });
 
     this._socket.on('end', function(conn) {
@@ -71,6 +67,7 @@ var Server = Class(function(options) {
     });
 
     // Auth
+    this._sessionFile = options.sessionFile || 'storedSessions.json';
     this._authHandler = options.authHandler;
 
     // HTTP
@@ -79,7 +76,7 @@ var Server = Class(function(options) {
         that.onHTTPRequest(req, res);
     });
 
-}, Logger, {
+}, lib.Logger, {
 
     // Let's stick to the common NodeJS interace
     listen: function(port) {
@@ -117,7 +114,7 @@ var Server = Class(function(options) {
 
         if (this._clients.length >= this._maxClients) {
 
-            conn.send(BISON.encode({
+            conn.send(lib.BISON.encode({
                 type: network.ERROR,
                 code: network.Error.SERVER_FULL,
                 detail: this._maxClients
@@ -126,7 +123,7 @@ var Server = Class(function(options) {
             conn.close();
 
         } else {
-            conn.send(BISON.encode({
+            conn.send(lib.BISON.encode({
                 type: network.Server.SETTINGS
             }));
         }
@@ -164,13 +161,13 @@ var Server = Class(function(options) {
 
             // Add client
             if (valid === true) {
-                var client = new ServerClient(this, conn, msg);
+                var client = new Client(this, conn, msg);
                 this._clients.add(client);
 
             } else {
 
                 this.log('Invalid connect: ' + valid);
-                conn.send(BISON.encode({
+                conn.send(lib.BISON.encode({
                     type: network.ERROR,
                     code: network.Error.INVALID_CONNECT,
                     detail: valid
@@ -213,17 +210,17 @@ var Server = Class(function(options) {
         }
 
         if (!clients || clients.length === 0) {
-            this._bytesSend += this._socket.broadcast(BISON.encode(msg));
+            this._bytesSend += this._socket.broadcast(lib.BISON.encode(msg));
 
         } else if (exclude) {
             clients.eachNot(exclude, function(client) {
-                this._bytesSend += client.sendPlain(BISON.encode(msg));
+                this._bytesSend += client.sendPlain(lib.BISON.encode(msg));
 
             }, this);
 
         } else {
             clients.each(function(client) {
-                this._bytesSend += client.sendPlain(BISON.encode(msg));
+                this._bytesSend += client.sendPlain(lib.BISON.encode(msg));
 
             }, this);
         }
@@ -369,7 +366,7 @@ var Server = Class(function(options) {
 
         try {
 
-            this._sessions = JSON.parse(fs.readFileSync('session.json'));
+            this._sessions = JSON.parse(fs.readFileSync(this._sessionFile));
             this.log('Read session data from disk');
 
             for(var i in this._sessions) {
@@ -391,7 +388,7 @@ var Server = Class(function(options) {
     writeSessions: function() {
 
         try {
-            fs.writeFileSync('session.json', JSON.stringify(this._sessions));
+            fs.writeFileSync(this._sessionFile, JSON.stringify(this._sessions));
             this.log('Wrote session data to disk.');
 
         } catch(e) {
@@ -402,9 +399,9 @@ var Server = Class(function(options) {
 
 });
 
-Server.Client = ServerClient;
-Server.Player = ServerPlayer;
-Server.Game = ServerGame;
+Server.Client = Client;
+Server.Player = Player;
+Server.Game = Game;
 
 module.exports = Server;
 
