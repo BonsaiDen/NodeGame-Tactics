@@ -122,11 +122,8 @@ ticked.Client = Class(function(updateFps, renderFps, gameClass) {
             } catch(e) {
             }
 
-            hash = hash || '--------------------------------';
-
             that.send(ticked.network.Client.CONNECT, {
-                hash: hash,
-                name: name
+                hash: hash
             });
 
         };

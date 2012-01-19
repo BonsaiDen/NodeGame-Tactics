@@ -6,6 +6,11 @@ window.onload = function() {
         this.joinGame(1);
     });
 
+    client.on('error', function(msg) {
+        console.log('Error:', ticked.network.ErrorMap[msg.code]);
+        //document.location.pathname = '/auth';
+    });
+
     client.connect(document.location.hostname, ticked.network.PORT, 'Ivo');
 
 };

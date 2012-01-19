@@ -83,11 +83,19 @@
 
         // Error codes
         Error: {
-            LOGIN_MISSING: 0,
+            NO_LOGIN: 0,
             SERVER_FULL: 1,
             INVALID_CONNECT: 2,
             INVALID_GAME: 3,
             SAME_GAME: 4
+        },
+
+        ErrorMap: {
+            0: 'No login',
+            1: 'Server is full',
+            2: 'Invalid connect message',
+            3: 'Invalid Game ID',
+            4: 'Already in this game'
         }
 
     };

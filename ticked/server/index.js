@@ -110,9 +110,15 @@ var Server = lib.Class(function(options) {
 
         this.getSession(req);
 
-        console.log('User: ', req.session.user);
+        if (!req.session || !req.session.user) {
+            conn.send(lib.BISON.encode({
+                type: network.ERROR,
+                code: network.Error.NO_LOGIN
+            }));
 
-        if (this._clients.length >= this._maxClients) {
+            conn.close();
+
+        } else if (this._clients.length >= this._maxClients) {
 
             conn.send(lib.BISON.encode({
                 type: network.ERROR,
@@ -123,54 +129,45 @@ var Server = lib.Class(function(options) {
             conn.close();
 
         } else {
+
+            conn.session = req.session;
             conn.send(lib.BISON.encode({
                 type: network.Server.SETTINGS
             }));
+
         }
 
     },
 
     onMessage: function(conn, msg) {
 
-        if (this._clients.has(conn)) {
+        if (!conn.session || !conn.session.user) {
+
+        } else if (this._clients.has(conn)) {
             this._clients.get(conn).onMessage(msg);
 
         } else {
 
-            // Check if the login is valid
-            var valid = false,
-                name = (msg.name || '').trim();
-
-            // Check basic message
+            var valid = true;
             if (msg instanceof Array || msg.type !== network.Client.CONNECT) {
-                valid = 'connect message required first';
+                valid = false;
 
-            // Check game hash
-            } else if (typeof msg.hash !== 'string'
-                       || msg.hash.trim().length !== 32) {
+            } else if (typeof msg.hash !== 'string') {
+                valid = false;
 
-                valid = 'invalid client hash';
-
-            // Check name
-            } else if (name.length < 2 || name.length > 16) {
-                valid = 'Name length must be between 2 and 16 chars';
-
-            } else {
-                valid = true;
+            } else if (msg.hash.trim().length !== 32 && msg.hash !== '' ) {
+                valid = false;
             }
 
-            // Add client
-            if (valid === true) {
-                var client = new Client(this, conn, msg);
-                this._clients.add(client);
+            if (valid) {
+                this._clients.add(new Client(this, conn, msg.hash));
 
             } else {
+                this.log('Invalid connect by:', conn.session.user.name);
 
-                this.log('Invalid connect: ' + valid);
                 conn.send(lib.BISON.encode({
                     type: network.ERROR,
-                    code: network.Error.INVALID_CONNECT,
-                    detail: valid
+                    code: network.Error.INVALID_CONNECT
                 }));
 
                 conn.close();
@@ -178,6 +175,49 @@ var Server = lib.Class(function(options) {
             }
 
         }
+        //} else if(false) {
+
+        //    // Check if the login is valid
+        //    var valid = false,
+        //        name = (msg.name || '').trim();
+
+        //    // Check basic message
+        //    if (msg instanceof Array || msg.type !== network.Client.CONNECT) {
+        //        valid = 'connect message required first';
+
+        //    // Check game hash
+        //    } else if (typeof msg.hash !== 'string'
+        //               || msg.hash.trim().length !== 32) {
+
+        //        valid = 'invalid client hash';
+
+        //    // Check name
+        //    } else if (name.length < 2 || name.length > 16) {
+        //        valid = 'Name length must be between 2 and 16 chars';
+
+        //    } else {
+        //        valid = true;
+        //    }
+
+        //    // Add client
+        //    if (valid === true) {
+        //        var client = new Client(this, conn, msg);
+        //        this._clients.add(client);
+
+        //    } else {
+
+        //        this.log('Invalid connect: ' + valid);
+        //        conn.send(lib.BISON.encode({
+        //            type: network.ERROR,
+        //            code: network.Error.INVALID_CONNECT,
+        //            detail: valid
+        //        }));
+
+        //        conn.close();
+
+        //    }
+
+        //}
 
     },
 

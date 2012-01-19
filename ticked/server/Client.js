@@ -34,25 +34,26 @@ var lib = require('../lib'),
 
 // Game Server Client ---------------------------------------------------------
 // ----------------------------------------------------------------------------
-var Client = Class(function(server, conn, msg) {
+var Client = Class(function(server, conn, hash) {
 
     Logger.init(this, 'Client');
 
     this._server = server;
     this._conn = conn;
+    this._session = conn.session;
 
     // IDs
     this.id = this._conn.id;
     this.uid = ++Client.$id;
 
     // State
-    this._hash = msg.hash;
-    this._name = msg.name;
+    this._hash = hash;
+    this._name = this._session.user.name;
     this._game = null;
     this._player = null;
 
     // Send intitial hash
-    if (this._hash === '--------------------------------') {
+    if (this._hash === '') {
         this.updateHash();
     }
 
@@ -223,6 +224,10 @@ var Client = Class(function(server, conn, msg) {
 
         this._player = player;
 
+    },
+
+    getSession: function() {
+        return this._session;
     },
 
     /**

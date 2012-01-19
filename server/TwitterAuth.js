@@ -48,7 +48,7 @@ var TwitterAuth = lib.Class(function(options) {
 
         if (req.pathname === '/auth/callback') {
 
-            function verified(result, error) {
+            var verified = function(result, error) {
 
                 if (error) {
                    res.writeHead(302, { 'Content-Type': 'text/html', 'Location': '/auth' });
@@ -59,7 +59,7 @@ var TwitterAuth = lib.Class(function(options) {
                    res.end();
                 }
 
-            }
+            };
 
             if (!this.validate(req, res, verified)) {
                 res.writeHead(200, { 'Content-Type': 'text/html' });
@@ -70,7 +70,7 @@ var TwitterAuth = lib.Class(function(options) {
 
         } else if (req.pathname === '/auth') {
 
-            function auth(token, error) {
+            var auth = function(token, error) {
 
                 if (error) {
                     res.end('Could not create oauth tokens.');
@@ -78,6 +78,7 @@ var TwitterAuth = lib.Class(function(options) {
 
                 } else {
 
+                    console.log(req.headers.host);
                     res.writeHead(302, {
                         'Content-Type': 'text/html',
                         'Location': 'https://twitter.com/oauth/authenticate?oauth_token=' + token
@@ -87,7 +88,7 @@ var TwitterAuth = lib.Class(function(options) {
 
                 }
 
-            }
+            };
 
             this.get(req, res, auth);
             return true;
@@ -99,7 +100,7 @@ var TwitterAuth = lib.Class(function(options) {
     get: function(req, res, callback) {
 
         var that = this;
-        this._oAuth.getOAuthRequestToken(function(error, token, secret, results){
+        this._oAuth.getOAuthRequestToken(function(error, token, secret, results) {
 
             if (error) {
                 that.log('Failed to create tokens.');
@@ -130,7 +131,7 @@ var TwitterAuth = lib.Class(function(options) {
 
             oauth.verifier = req.query.oauth_verifier;
 
-            function result(error, token, secret, results) {
+            var result = function(error, token, secret, results) {
 
                 if (error) {
                     that.log('Token expired:', error);
@@ -150,7 +151,7 @@ var TwitterAuth = lib.Class(function(options) {
 
                 callback.call(that, results, error);
 
-            }
+            };
 
             this.log('Verfifying...');
             this._oAuth.getOAuthAccessToken(oauth.token, oauth.secret,
